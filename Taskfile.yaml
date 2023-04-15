@@ -1,6 +1,15 @@
 version: '3'
 
 tasks:
+  build:
+    cmds:
+      - go build -v -race -o build/main main.go
+
+  run:
+    deps: [build]
+    cmds:
+      - ./build/main
+
   test:
     cmds:
       - gotest -race -cover ./...
@@ -12,11 +21,13 @@ tasks:
       - golangci-lint run ./...
     sources:
       - ./**/*.go
+      - .golangci.yaml
 
   format:
-    deps: [test, lint]
     cmds:
       - golangci-lint run --fix ./...
       - go mod tidy
     sources:
       - ./**/*.go
+      - go.mod
+      - go.sum

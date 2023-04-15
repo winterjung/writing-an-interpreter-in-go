@@ -1,10 +1,34 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
-.task
+.env*
+.task/
+build/
+out/
 
 # IDEs and editors
 .vscode/
 .idea/
+
+# Go #
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go Patch #
+/vendor/
+/Godeps/
 
 # System Files
 .DS_Store
