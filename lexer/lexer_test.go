@@ -104,6 +104,33 @@ let result = add(five, ten);
 				{Type: token.SEMICOLON, Literal: ";"},
 			},
 		},
+		{
+			name: "if, else, return, true, false",
+			input: `if (5 < 10) {
+  return true;
+} else {
+  return false;
+}`,
+			expected: []token.Token{
+				{Type: token.IF, Literal: "if"},
+				{Type: token.LPAREN, Literal: "("},
+				{Type: token.INTEGER, Literal: "5"},
+				{Type: token.LT, Literal: "<"},
+				{Type: token.INTEGER, Literal: "10"},
+				{Type: token.RPAREN, Literal: ")"},
+				{Type: token.LBRACE, Literal: "{"},
+				{Type: token.RETURN, Literal: "return"},
+				{Type: token.TRUE, Literal: "true"},
+				{Type: token.SEMICOLON, Literal: ";"},
+				{Type: token.RBRACE, Literal: "}"},
+				{Type: token.ELSE, Literal: "else"},
+				{Type: token.LBRACE, Literal: "{"},
+				{Type: token.RETURN, Literal: "return"},
+				{Type: token.FALSE, Literal: "false"},
+				{Type: token.SEMICOLON, Literal: ";"},
+				{Type: token.RBRACE, Literal: "}"},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
