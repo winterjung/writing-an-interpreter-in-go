@@ -80,6 +80,30 @@ let result = add(five, ten);
 				{Type: token.EOF, Literal: ""},
 			},
 		},
+		{
+			name:  "arithmetic operators",
+			input: "!-/*5;\n",
+			expected: []token.Token{
+				{Type: token.BANG, Literal: "!"},
+				{Type: token.MINUS, Literal: "-"},
+				{Type: token.SLASH, Literal: "/"},
+				{Type: token.ASTERISK, Literal: "*"},
+				{Type: token.INTEGER, Literal: "5"},
+				{Type: token.SEMICOLON, Literal: ";"},
+			},
+		},
+		{
+			name:  "comparison operators",
+			input: "5 < 10 > 5;",
+			expected: []token.Token{
+				{Type: token.INTEGER, Literal: "5"},
+				{Type: token.LT, Literal: "<"},
+				{Type: token.INTEGER, Literal: "10"},
+				{Type: token.GT, Literal: ">"},
+				{Type: token.INTEGER, Literal: "5"},
+				{Type: token.SEMICOLON, Literal: ";"},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc
