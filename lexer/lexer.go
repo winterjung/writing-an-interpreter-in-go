@@ -31,13 +31,31 @@ func (l *Lexer) NextToken() token.Token {
 	l.skipWhitespace()
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		switch l.peekChar() {
+		case '=':
+			l.readChar()
+			tok = token.Token{
+				Type:    token.EQ,
+				Literal: "==",
+			}
+		default:
+			tok = newToken(token.ASSIGN, l.ch)
+		}
 	case '+':
 		tok = newToken(token.PLUS, l.ch)
 	case '-':
 		tok = newToken(token.MINUS, l.ch)
 	case '!':
-		tok = newToken(token.BANG, l.ch)
+		switch l.peekChar() {
+		case '=':
+			l.readChar()
+			tok = token.Token{
+				Type:    token.NEQ,
+				Literal: "!=",
+			}
+		default:
+			tok = newToken(token.BANG, l.ch)
+		}
 	case '/':
 		tok = newToken(token.SLASH, l.ch)
 	case '*':
@@ -96,6 +114,14 @@ func (l *Lexer) readChar() {
 	}
 	l.position = l.readPosition
 	l.readPosition++
+}
+
+// 현재 위치를 바꾸지 않고 다음 문자만 살펴보는 메서드
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	}
+	return l.input[l.readPosition]
 }
 
 // 문자가 아닐 때 까지 글자를 읽어 문자열을 반환함

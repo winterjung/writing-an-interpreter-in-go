@@ -131,6 +131,20 @@ let result = add(five, ten);
 				{Type: token.RBRACE, Literal: "}"},
 			},
 		},
+		{
+			name:  "two char token",
+			input: "10 == 10;\n10 != 9;",
+			expected: []token.Token{
+				{Type: token.INTEGER, Literal: "10"},
+				{Type: token.EQ, Literal: "=="},
+				{Type: token.INTEGER, Literal: "10"},
+				{Type: token.SEMICOLON, Literal: ";"},
+				{Type: token.INTEGER, Literal: "10"},
+				{Type: token.NEQ, Literal: "!="},
+				{Type: token.INTEGER, Literal: "9"},
+				{Type: token.SEMICOLON, Literal: ";"},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc

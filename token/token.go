@@ -23,8 +23,10 @@ const (
 	ASTERISK = "*"
 	SLASH    = "/"
 
-	LT = "<"
-	GT = ">"
+	EQ  = "=="
+	NEQ = "!="
+	LT  = "<"
+	GT  = ">"
 
 	// 구분자
 	COMMA     = ","
