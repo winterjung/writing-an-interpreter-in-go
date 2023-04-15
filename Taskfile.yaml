@@ -1,0 +1,15 @@
+version: '3'
+
+tasks:
+  test:
+    cmds:
+      - gotest -race -cover ./...
+
+  lint:
+    cmds:
+      - golangci-lint run ./...
+
+  format:
+    cmds:
+      - golangci-lint run --fix ./...
+      - go mod tidy
