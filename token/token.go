@@ -1,15 +1,15 @@
 package token
 
-type TokenType string
+type Type string
 
 type Token struct {
-	Type    TokenType
+	Type    Type
 	Literal string
 }
 
 const (
-	ILLEGAL TokenType = "ILLEGAL" // 알 수 없는 토큰
-	EOF               = "EOF"     // 파일의 끝
+	ILLEGAL = "ILLEGAL" // 알 수 없는 토큰
+	EOF     = "EOF"     // 파일의 끝
 
 	// 식별자 + 리터럴
 	IDENTIFIER = "IDENTIFIER" // 변수 이름
@@ -32,3 +32,16 @@ const (
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
 )
+
+var keywords = map[string]Type{
+	"fn":  FUNCTION,
+	"let": LET,
+}
+
+// 주어진 식별자가 예약어인지 아닌지 판단
+func LookupIdentifier(s string) Type {
+	if tokenType, ok := keywords[s]; ok {
+		return tokenType
+	}
+	return IDENTIFIER
+}
