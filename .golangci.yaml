@@ -1,0 +1,72 @@
+run:
+  go: '1.19'
+  allow-parallel-runners: true
+  timeout: 3m
+
+linters:
+  enable:
+    - exportloopref
+    - gci
+    - gofmt
+    - misspell
+    - revive
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(go-interpreter)
+    skip-generated: true
+    custom-order: true
+
+  revive:
+    # based on https://github.com/mgechev/revive#recommended-configuration
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+
+    # 각 룰의 자세한 설명은 다음 문서를 참고
+    # - https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md
+    # 룰은 알파벳 오름차순으로 정렬
+    rules:
+      # Deny naked return always
+      - name: bare-return
+        severity: error
+      - name: blank-imports
+      - name: bool-literal-in-expr
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: datarace
+      - name: defer
+      - name: early-return
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: exported
+      # Allow maximum 3 results in function
+      - name: function-result-limit
+        arguments: [3]
+      - name: if-return
+      - name: indent-error-flow
+      - name: increment-decrement
+      - name: range
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: superfluous-else
+      - name: time-equal
+      - name: time-naming
+      - name: var-declaration
+      - name: var-naming
+      - name: unexported-naming
+      # Handle error always
+      - name: unhandled-error
+        severity: error
+      - name: unused-parameter
+      - name: use-any
+      - name: useless-break
+      - name: waitgroup-by-value
+
+output:
+  format: colored-line-number
