@@ -4,12 +4,19 @@ tasks:
   test:
     cmds:
       - gotest -race -cover ./...
+    sources:
+      - ./**/*.go
 
   lint:
     cmds:
       - golangci-lint run ./...
+    sources:
+      - ./**/*.go
 
   format:
+    deps: [test, lint]
     cmds:
       - golangci-lint run --fix ./...
       - go mod tidy
+    sources:
+      - ./**/*.go
