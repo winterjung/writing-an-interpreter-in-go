@@ -1,5 +1,7 @@
 package ast
 
+import "go-interpreter/token"
+
 type Node interface {
 	// TokenLiteral 메서드는 토큰에 대응하는 리터럴 값을 반환하며
 	// 디버깅, 테스트 용도로만 사용함
@@ -31,3 +33,23 @@ func (p *Program) TokenLiteral() string {
 	}
 	return p.Statements[0].TokenLiteral()
 }
+
+// let <identifier> = <expression>;
+type LetStatement struct {
+	Token token.Token // token.LET 토큰
+	Name  *Identifier
+	Value Expression
+}
+
+func (s *LetStatement) statementNode() {}
+
+func (s *LetStatement) TokenLiteral() string { return s.Token.Literal }
+
+type Identifier struct {
+	Token token.Token // token.IDENTIFIER 토큰
+	Value string
+}
+
+func (i *Identifier) expressionNode() {}
+
+func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
