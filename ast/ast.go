@@ -1,11 +1,17 @@
 package ast
 
-import "go-interpreter/token"
+import (
+	"bytes"
+	"fmt"
+
+	"go-interpreter/token"
+)
 
 type Node interface {
 	// TokenLiteral 메서드는 토큰에 대응하는 리터럴 값을 반환하며
 	// 디버깅, 테스트 용도로만 사용함
 	TokenLiteral() string
+	String() string
 }
 
 // Statement 인터페이스는 5, return 5; 같은 명령문을 의미함
@@ -34,6 +40,14 @@ func (p *Program) TokenLiteral() string {
 	return p.Statements[0].TokenLiteral()
 }
 
+func (p *Program) String() string {
+	var out bytes.Buffer
+	for _, stmt := range p.Statements {
+		_, _ = out.WriteString(stmt.String())
+	}
+	return out.String()
+}
+
 // let <identifier> = <expression>;
 type LetStatement struct {
 	Token token.Token // token.LET 토큰
@@ -45,6 +59,10 @@ func (s *LetStatement) statementNode() {}
 
 func (s *LetStatement) TokenLiteral() string { return s.Token.Literal }
 
+func (s *LetStatement) String() string {
+	return fmt.Sprintf("%s %s = %s;", s.TokenLiteral(), s.Name, s.Value)
+}
+
 type Identifier struct {
 	Token token.Token // token.IDENTIFIER 토큰
 	Value string
@@ -53,6 +71,10 @@ type Identifier struct {
 func (i *Identifier) expressionNode() {}
 
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+
+func (i *Identifier) String() string {
+	return i.Value
+}
 
 // return <expression>;
 type ReturnStatement struct {
@@ -63,3 +85,7 @@ type ReturnStatement struct {
 func (s *ReturnStatement) statementNode() {}
 
 func (s *ReturnStatement) TokenLiteral() string { return s.Token.Literal }
+
+func (s *ReturnStatement) String() string {
+	return fmt.Sprintf("%s %s;", s.TokenLiteral(), s.Value)
+}
