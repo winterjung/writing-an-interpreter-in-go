@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+
 	"go-interpreter/ast"
 	"go-interpreter/lexer"
 	"go-interpreter/token"
@@ -48,6 +49,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.currToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	default:
 		return nil
 	}
@@ -72,6 +75,21 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
+
+	// TODO: 일단 표현식은 무시하고 세미콜론까지 진행
+	for !p.currentTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{
+		Token: p.currToken,
+		Value: nil,
+	}
+	// return을 지나 표현식이 있는 곳으로 진행
+	p.nextToken()
 
 	// TODO: 일단 표현식은 무시하고 세미콜론까지 진행
 	for !p.currentTokenIs(token.SEMICOLON) {

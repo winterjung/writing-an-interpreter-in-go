@@ -1,11 +1,13 @@
 package parser
 
 import (
-	"github.com/stretchr/testify/require"
-	"go-interpreter/ast"
-	"go-interpreter/lexer"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"go-interpreter/ast"
+	"go-interpreter/lexer"
 )
 
 func TestParser_ParseProgram(t *testing.T) {
@@ -44,12 +46,32 @@ let foobar = 42;
 		}
 
 	})
+	t.Run("return statements", func(t *testing.T) {
+		t.Parallel()
+
+		input := `
+return 5;
+return 10;
+return 42;
+`
+		p := New(lexer.New(input))
+		program := p.ParseProgram()
+		require.NotNil(t, program)
+		require.Nil(t, p.errs.ErrorOrNil())
+		require.Len(t, program.Statements, 3)
+		for _, stmt := range program.Statements {
+			returnStmt, ok := stmt.(*ast.ReturnStatement)
+			require.Truef(t, ok, "expected: *ast.ReturnStatement, got: %T", stmt)
+			require.Equal(t, "return", returnStmt.TokenLiteral())
+		}
+
+	})
 }
 
 func assertLetStatement(t *testing.T, stmt ast.Statement, name string) {
-	require.Equal(t, "let", stmt.TokenLiteral())
 	letStmt, ok := stmt.(*ast.LetStatement)
 	require.Truef(t, ok, "expected: *ast.LetStatement, got: %T", stmt)
+	require.Equal(t, "let", letStmt.TokenLiteral())
 	require.Equal(t, name, letStmt.Name.Value)
 	require.Equal(t, name, letStmt.Name.TokenLiteral())
 }
