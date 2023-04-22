@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"strconv"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 
@@ -34,6 +36,7 @@ func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l}
 	p.prefixParseFnMap = map[token.Type]prefixParseFn{
 		token.IDENTIFIER: p.parseIdentifier,
+		token.INTEGER:    p.parseIntegerLiteral,
 	}
 
 	// currToken, peekToken 세팅
@@ -140,6 +143,19 @@ func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{
 		Token: p.currToken,
 		Value: p.currToken.Literal,
+	}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	// nextToken()을 호출하지 않음
+	i, err := strconv.ParseInt(p.currToken.Literal, 10, 64)
+	if err != nil {
+		p.errs = multierror.Append(p.errs, errors.Errorf("could not parse %q as integer", p.currToken.Literal))
+		return nil
+	}
+	return &ast.IntegerLiteral{
+		Token: p.currToken,
+		Value: i,
 	}
 }
 

@@ -77,6 +77,22 @@ return 42;
 			require.Equal(t, "foobar", identifier.Value)
 		}
 	})
+	t.Run("integer expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `42;`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+		for _, stmt := range program.Statements {
+			expStmt, ok := stmt.(*ast.ExpressionStatement)
+			require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+			integer, ok := expStmt.Expression.(*ast.IntegerLiteral)
+			require.Truef(t, ok, "expected: *ast.IntegerLiteral, got: %T", expStmt.Expression)
+			require.Equal(t, "42", integer.TokenLiteral())
+			require.Equal(t, int64(42), integer.Value)
+		}
+	})
 }
 
 func assertLetStatement(t *testing.T, stmt ast.Statement, name string) {

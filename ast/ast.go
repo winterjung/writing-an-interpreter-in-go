@@ -63,19 +63,6 @@ func (s *LetStatement) String() string {
 	return fmt.Sprintf("%s %s = %s;", s.TokenLiteral(), s.Name, s.Value)
 }
 
-type Identifier struct {
-	Token token.Token // token.IDENTIFIER 토큰
-	Value string
-}
-
-func (i *Identifier) expressionNode() {}
-
-func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
-
-func (i *Identifier) String() string {
-	return i.Value
-}
-
 // return <expression>;
 type ReturnStatement struct {
 	Token token.Token // token.RETURN 토큰
@@ -102,3 +89,25 @@ func (s *ExpressionStatement) statementNode() {}
 func (s *ExpressionStatement) TokenLiteral() string { return s.Token.Literal }
 
 func (s *ExpressionStatement) String() string { return s.Expression.String() }
+
+type Identifier struct {
+	Token token.Token // token.IDENTIFIER 토큰
+	Value string
+}
+
+func (i *Identifier) expressionNode() {}
+
+func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+
+func (i *Identifier) String() string { return i.Value }
+
+type IntegerLiteral struct {
+	Token token.Token // token.INTEGER 토큰
+	Value int64
+}
+
+func (l *IntegerLiteral) expressionNode() {}
+
+func (l *IntegerLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *IntegerLiteral) String() string { return l.Token.Literal }
