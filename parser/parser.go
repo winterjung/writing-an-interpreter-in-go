@@ -9,6 +9,13 @@ import (
 	"go-interpreter/token"
 )
 
+type (
+	// 전위 파싱 함수
+	prefixParseFn func() ast.Expression
+	// 중위 파싱 함수
+	infixParseFn func(ast.Expression) ast.Expression
+	// TODO: ++ 같은 후위 파싱 지원
+)
 type Parser struct {
 	l *lexer.Lexer
 
@@ -17,10 +24,17 @@ type Parser struct {
 	peekToken token.Token
 	// 파싱 중 발생한 에러
 	errs *multierror.Error
+
+	// 현재 토큰 토큰에 따라 사용할 수 있는 파싱 함수
+	prefixParseFnMap map[token.Type]prefixParseFn
+	infixParseFnMap  map[token.Type]infixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l}
+	p.prefixParseFnMap = map[token.Type]prefixParseFn{
+		token.IDENTIFIER: p.parseIdentifier,
+	}
 
 	// currToken, peekToken 세팅
 	p.nextToken()
@@ -52,7 +66,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -96,6 +110,37 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		p.nextToken()
 	}
 	return stmt
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{
+		Token:      p.currToken,
+		Expression: p.parseExpression(LOWEST),
+	}
+
+	// REPL에서 "5 + 5"같은 표현식을 간편하게 사용하기 위해
+	// 세미콜론을 선택적으로 검사
+	for p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+	return stmt
+}
+
+func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
+	prefix := p.prefixParseFnMap[p.currToken.Type]
+	if prefix == nil {
+		return nil
+	}
+	left := prefix()
+	return left
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	// nextToken()을 호출하지 않음
+	return &ast.Identifier{
+		Token: p.currToken,
+		Value: p.currToken.Literal,
+	}
 }
 
 func (p *Parser) currentTokenIs(t token.Type) bool {

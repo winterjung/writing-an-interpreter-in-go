@@ -89,3 +89,16 @@ func (s *ReturnStatement) TokenLiteral() string { return s.Token.Literal }
 func (s *ReturnStatement) String() string {
 	return fmt.Sprintf("%s %s;", s.TokenLiteral(), s.Value)
 }
+
+// <expression>;
+// "x + 10;"처럼 표현식 하나로만 구성되는 명령문
+type ExpressionStatement struct {
+	Token      token.Token // 표현식의 첫 번째 토큰
+	Expression Expression
+}
+
+func (s *ExpressionStatement) statementNode() {}
+
+func (s *ExpressionStatement) TokenLiteral() string { return s.Token.Literal }
+
+func (s *ExpressionStatement) String() string { return s.Expression.String() }
