@@ -112,7 +112,7 @@ func (l *IntegerLiteral) TokenLiteral() string { return l.Token.Literal }
 
 func (l *IntegerLiteral) String() string { return l.Token.Literal }
 
-// <prefix operator><expression>;
+// <prefix operator><expression>
 type PrefixExpression struct {
 	Token    token.Token // 전위 연산자 토큰 (e.g. -, !)
 	Operator string
@@ -125,4 +125,20 @@ func (exp *PrefixExpression) TokenLiteral() string { return exp.Token.Literal }
 
 func (exp *PrefixExpression) String() string {
 	return fmt.Sprintf("(%s%s)", exp.Operator, exp.Right)
+}
+
+// <expression> <infix operator> <expression>
+type InfixExpression struct {
+	Token    token.Token // 중위 연산자 토큰 (e.g. +, -)
+	Operator string
+	Left     Expression
+	Right    Expression
+}
+
+func (exp *InfixExpression) expressionNode() {}
+
+func (exp *InfixExpression) TokenLiteral() string { return exp.Token.Literal }
+
+func (exp *InfixExpression) String() string {
+	return fmt.Sprintf("(%s %s %s)", exp.Left, exp.Operator, exp.Right)
 }

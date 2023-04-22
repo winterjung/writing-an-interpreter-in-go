@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"go-interpreter/ast"
@@ -125,7 +126,66 @@ return 42;
 			require.Equal(t, tc.expectedOp, prefix.Operator)
 			assertIntegerLiteral(t, prefix.Right, tc.expectedInteger)
 		}
+	})
+	t.Run("infix expression", func(t *testing.T) {
+		t.Parallel()
 
+		cases := []struct {
+			input string
+			left  int64
+			op    string
+			right int64
+		}{
+			{input: "5 + 5", left: 5, op: "+", right: 5},
+			{input: "5 -5", left: 5, op: "-", right: 5},
+			{input: "5* 5", left: 5, op: "*", right: 5},
+			{input: "5 / 5;", left: 5, op: "/", right: 5},
+			{input: "5 > 5", left: 5, op: ">", right: 5},
+			{input: "5 < 5", left: 5, op: "<", right: 5},
+			{input: "5 == 5", left: 5, op: "==", right: 5},
+			{input: "5 != 5", left: 5, op: "!=", right: 5},
+		}
+		for _, tc := range cases {
+			t.Run(tc.input, func(t *testing.T) {
+				program := parseProgram(t, tc.input)
+				require.Len(t, program.Statements, 1)
+
+				stmt := program.Statements[0]
+				expStmt, ok := stmt.(*ast.ExpressionStatement)
+				require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+				infix, ok := expStmt.Expression.(*ast.InfixExpression)
+				require.Truef(t, ok, "expected: *ast.InfixExpression, got: %T", expStmt.Expression)
+				assertIntegerLiteral(t, infix.Left, tc.left)
+				require.Equal(t, tc.op, infix.Operator)
+				assertIntegerLiteral(t, infix.Right, tc.right)
+			})
+		}
+	})
+	t.Run("operator precedence", func(t *testing.T) {
+		cases := []struct {
+			input    string
+			expected string
+		}{
+			{input: "a+b", expected: "(a + b)"},
+			{input: "a+-b", expected: "(a + (-b))"},
+			{input: "-a * b", expected: "((-a) * b)"},
+			{input: "!-a", expected: "(!(-a))"},
+			{input: "a + b + c", expected: "((a + b) + c)"},
+			{input: "a + b - c", expected: "((a + b) - c)"},
+			{input: "a * b * c", expected: "((a * b) * c)"},
+			{input: "a * b / c", expected: "((a * b) / c)"},
+			{input: "a + b / c", expected: "(a + (b / c))"},
+			{input: "a + b * c + d / e - f", expected: "(((a + (b * c)) + (d / e)) - f)"},
+			{input: "3 + 4; -5 * 5", expected: "(3 + 4)((-5) * 5)"},
+			{input: "5 > 4 == 3 < 4", expected: "((5 > 4) == (3 < 4))"},
+			{input: "5 < 4 != 3 > 4", expected: "((5 < 4) != (3 > 4))"},
+			{input: "3 + 4 * 5 == 3 * 1 + 4 * 5", expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+		}
+		for _, tc := range cases {
+			program := parseProgram(t, tc.input)
+			got := program.String()
+			assert.Equal(t, tc.expected, got)
+		}
 	})
 }
 

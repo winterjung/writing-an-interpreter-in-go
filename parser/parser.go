@@ -40,6 +40,16 @@ func New(l *lexer.Lexer) *Parser {
 		token.BANG:       p.parsePrefixExpression,
 		token.MINUS:      p.parsePrefixExpression,
 	}
+	p.infixParseFnMap = map[token.Type]infixParseFn{
+		token.EQ:       p.parseInfixExpression,
+		token.NEQ:      p.parseInfixExpression,
+		token.LT:       p.parseInfixExpression,
+		token.GT:       p.parseInfixExpression,
+		token.PLUS:     p.parseInfixExpression,
+		token.MINUS:    p.parseInfixExpression,
+		token.ASTERISK: p.parseInfixExpression,
+		token.SLASH:    p.parseInfixExpression,
+	}
 
 	// currToken, peekToken 세팅
 	p.nextToken()
@@ -138,6 +148,17 @@ func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
 		return nil
 	}
 	left := prefix()
+
+	// 현재 우선순위보다 낮은 우선순위의 토큰을 만날 때까지 반복
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixParseFnMap[p.peekToken.Type]
+		if infix == nil {
+			return left
+		}
+
+		p.nextToken()
+		left = infix(left)
+	}
 	return left
 }
 
@@ -176,6 +197,20 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	return exp
 }
 
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	exp := &ast.InfixExpression{
+		Token:    p.currToken,
+		Operator: p.currToken.Literal,
+		Left:     left,
+		Right:    nil,
+	}
+
+	precedence := p.currPrecedence()
+	p.nextToken()
+	exp.Right = p.parseExpression(precedence)
+	return exp
+}
+
 func (p *Parser) currentTokenIs(t token.Type) bool {
 	return p.currToken.Type == t
 }
@@ -192,6 +227,20 @@ func (p *Parser) expectPeek(t token.Type) bool {
 	}
 	p.markAsError(t)
 	return false
+}
+
+func (p *Parser) currPrecedence() opPrecedence {
+	if p, ok := precedenceMap[p.currToken.Type]; ok {
+		return p
+	}
+	return LOWEST
+}
+
+func (p *Parser) peekPrecedence() opPrecedence {
+	if p, ok := precedenceMap[p.peekToken.Type]; ok {
+		return p
+	}
+	return LOWEST
 }
 
 // markAsError 메서드는 디버깅을 위해 파싱 과정에서 발생한 에러를 저장함
