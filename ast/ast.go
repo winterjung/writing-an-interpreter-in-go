@@ -111,3 +111,18 @@ func (l *IntegerLiteral) expressionNode() {}
 func (l *IntegerLiteral) TokenLiteral() string { return l.Token.Literal }
 
 func (l *IntegerLiteral) String() string { return l.Token.Literal }
+
+// <prefix operator><expression>;
+type PrefixExpression struct {
+	Token    token.Token // 전위 연산자 토큰 (e.g. -, !)
+	Operator string
+	Right    Expression
+}
+
+func (exp *PrefixExpression) expressionNode() {}
+
+func (exp *PrefixExpression) TokenLiteral() string { return exp.Token.Literal }
+
+func (exp *PrefixExpression) String() string {
+	return fmt.Sprintf("(%s%s)", exp.Operator, exp.Right)
+}

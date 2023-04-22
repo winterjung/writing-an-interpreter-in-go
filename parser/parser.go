@@ -37,6 +37,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFnMap = map[token.Type]prefixParseFn{
 		token.IDENTIFIER: p.parseIdentifier,
 		token.INTEGER:    p.parseIntegerLiteral,
+		token.BANG:       p.parsePrefixExpression,
+		token.MINUS:      p.parsePrefixExpression,
 	}
 
 	// currToken, peekToken 세팅
@@ -132,6 +134,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
 	prefix := p.prefixParseFnMap[p.currToken.Type]
 	if prefix == nil {
+		p.errs = multierror.Append(p.errs, errors.Errorf("no prefix parse function for %s", p.currToken.Type))
 		return nil
 	}
 	left := prefix()
@@ -157,6 +160,20 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 		Token: p.currToken,
 		Value: i,
 	}
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	exp := &ast.PrefixExpression{
+		Token:    p.currToken,
+		Operator: p.currToken.Literal,
+		Right:    nil,
+	}
+
+	// "-"나 "!" 토큰만으론 전위 표현식을 파싱할 수 없기에
+	// 토큰을 소모해 다음으로 진행시킴
+	p.nextToken()
+	exp.Right = p.parseExpression(PREFIX)
+	return exp
 }
 
 func (p *Parser) currentTokenIs(t token.Type) bool {
