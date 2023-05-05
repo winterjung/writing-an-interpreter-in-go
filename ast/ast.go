@@ -142,3 +142,14 @@ func (exp *InfixExpression) TokenLiteral() string { return exp.Token.Literal }
 func (exp *InfixExpression) String() string {
 	return fmt.Sprintf("(%s %s %s)", exp.Left, exp.Operator, exp.Right)
 }
+
+type Boolean struct {
+	Token token.Token
+	Value bool
+}
+
+func (b *Boolean) expressionNode() {}
+
+func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
+
+func (b *Boolean) String() string { return b.Token.Literal }
