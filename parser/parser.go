@@ -42,6 +42,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.MINUS:      p.parsePrefixExpression,
 		token.TRUE:       p.parseBoolean,
 		token.FALSE:      p.parseBoolean,
+		token.LPAREN:     p.parseGroupedExpression,
 	}
 	p.infixParseFnMap = map[token.Type]infixParseFn{
 		token.EQ:       p.parseInfixExpression,
@@ -230,6 +231,18 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	precedence := p.currPrecedence()
 	p.nextToken()
 	exp.Right = p.parseExpression(precedence)
+	return exp
+}
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	defer untrace(trace("그룹 표현식"))
+
+	p.nextToken()
+	exp := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
 	return exp
 }
 
