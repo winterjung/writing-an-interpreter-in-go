@@ -106,17 +106,18 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	stmt.Name = &ast.Identifier{
-		Token: p.currToken,
-		Value: p.currToken.Literal,
-	}
+	stmt.Name = p.parseIdentifier().(*ast.Identifier)
 
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
 
-	// TODO: 일단 표현식은 무시하고 세미콜론까지 진행
-	for !p.currentTokenIs(token.SEMICOLON) {
+	// = 토큰을 지나 표현식이 있는 곳으로 진행
+	p.nextToken()
+
+	stmt.Value = p.parseExpression(LOWEST)
+
+	for p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 	return stmt
@@ -132,8 +133,9 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	// return을 지나 표현식이 있는 곳으로 진행
 	p.nextToken()
 
-	// TODO: 일단 표현식은 무시하고 세미콜론까지 진행
-	for !p.currentTokenIs(token.SEMICOLON) {
+	stmt.Value = p.parseExpression(LOWEST)
+
+	for p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 	return stmt

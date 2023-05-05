@@ -33,33 +33,48 @@ let x 5;
 	t.Run("let statements", func(t *testing.T) {
 		t.Parallel()
 
-		input := `
-let x = 5;
-let y = 10;
-let foobar = 42;
-`
-		expectedIdentifiers := []string{"x", "y", "foobar"}
-		program := parseProgram(t, input)
-		require.Len(t, program.Statements, 3)
-		for i, expected := range expectedIdentifiers {
-			assertLetStatement(t, program.Statements[i], expected)
+		cases := []struct {
+			input string
+			id    string
+			v     any
+		}{
+			{input: "let x= 5;", id: "x", v: 5},
+			{input: "let y = true", id: "y", v: true},
+			{input: "let z = y;", id: "z", v: "y"},
+		}
+
+		for _, tc := range cases {
+			program := parseProgram(t, tc.input)
+			require.Len(t, program.Statements, 1)
+
+			stmt := program.Statements[0]
+			assertLetStatement(t, stmt, tc.id)
+			v := stmt.(*ast.LetStatement).Value
+			assertLiteralExpression(t, v, tc.v)
 		}
 
 	})
 	t.Run("return statements", func(t *testing.T) {
 		t.Parallel()
 
-		input := `
-return 5;
-return 10;
-return 42;
-`
-		program := parseProgram(t, input)
-		require.Len(t, program.Statements, 3)
-		for _, stmt := range program.Statements {
+		cases := []struct {
+			input    string
+			expected any
+		}{
+			{input: "return 5;", expected: 5},
+			{input: "return true", expected: true},
+			{input: "return y;", expected: "y"},
+		}
+
+		for _, tc := range cases {
+			program := parseProgram(t, tc.input)
+			require.Len(t, program.Statements, 1)
+
+			stmt := program.Statements[0]
 			returnStmt, ok := stmt.(*ast.ReturnStatement)
 			require.Truef(t, ok, "expected: *ast.ReturnStatement, got: %T", stmt)
-			require.Equal(t, "return", returnStmt.TokenLiteral())
+			assert.Equal(t, "return", returnStmt.TokenLiteral())
+			assertLiteralExpression(t, returnStmt.Value, tc.expected)
 		}
 
 	})
