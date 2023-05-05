@@ -25,10 +25,10 @@ let x 5;
 		p := New(lexer.New(input))
 		program := p.ParseProgram()
 		require.NotNil(t, program)
-		require.NotNil(t, p.errs.ErrorOrNil())
+		require.NotNil(t, p.Errs.ErrorOrNil())
 		require.Equal(t, `2 errors occurred:
 	* expected: IDENTIFIER, but got: INTEGER
-	* expected: =, but got: INTEGER`, strings.TrimSpace(p.errs.Error()))
+	* expected: =, but got: INTEGER`, strings.TrimSpace(p.Errs.Error()))
 	})
 	t.Run("let statements", func(t *testing.T) {
 		t.Parallel()
@@ -390,8 +390,8 @@ func parseProgram(t *testing.T, input string) *ast.Program {
 	p := New(lexer.New(input))
 	program := p.ParseProgram()
 	require.NotNil(t, program)
-	if p.errs.ErrorOrNil() != nil {
-		t.Error(p.errs.Error())
+	if p.Errs.ErrorOrNil() != nil {
+		t.Error(p.Errs.Error())
 		t.FailNow()
 	}
 	return program

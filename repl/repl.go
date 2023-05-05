@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"strings"
 
 	"go-interpreter/lexer"
-	"go-interpreter/token"
+	"go-interpreter/parser"
 )
 
 const PROMPT = ">>> "
@@ -21,8 +22,13 @@ func Start(in io.Reader, out io.Writer) {
 
 		line := scanner.Text()
 		l := lexer.New(line)
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			_, _ = fmt.Fprintf(out, "%+v\n", tok)
+		p := parser.New(l)
+
+		program := p.ParseProgram()
+		if p.Errs.ErrorOrNil() != nil {
+			_, _ = fmt.Fprintf(out, "%s\n", strings.TrimSpace(p.Errs.Error()))
+			continue
 		}
+		_, _ = fmt.Fprintf(out, "%s\n", program.String())
 	}
 }

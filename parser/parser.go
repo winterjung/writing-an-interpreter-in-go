@@ -20,13 +20,14 @@ type (
 	// TODO: ++ 같은 후위 파싱 지원
 )
 type Parser struct {
+	// 파싱 중 발생한 에러
+	Errs *multierror.Error
+
 	l *lexer.Lexer
 
 	currToken token.Token
 	// 만약 currToken 일 때 5;로 끝나는건지 5 + 10 처럼 처리해야하는지 알기 위해 필요함
 	peekToken token.Token
-	// 파싱 중 발생한 에러
-	errs *multierror.Error
 
 	// 현재 토큰 토큰에 따라 사용할 수 있는 파싱 함수
 	prefixParseFnMap map[token.Type]prefixParseFn
@@ -180,7 +181,7 @@ func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
 
 	prefix := p.prefixParseFnMap[p.currToken.Type]
 	if prefix == nil {
-		p.errs = multierror.Append(p.errs, errors.Errorf("no prefix parse function for %s", p.currToken.Type))
+		p.Errs = multierror.Append(p.Errs, errors.Errorf("no prefix parse function for %s", p.currToken.Type))
 		return nil
 	}
 	left := prefix()
@@ -214,7 +215,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	// nextToken()을 호출하지 않음
 	i, err := strconv.ParseInt(p.currToken.Literal, 10, 64)
 	if err != nil {
-		p.errs = multierror.Append(p.errs, errors.Errorf("could not parse %q as integer", p.currToken.Literal))
+		p.Errs = multierror.Append(p.Errs, errors.Errorf("could not parse %q as integer", p.currToken.Literal))
 		return nil
 	}
 	return &ast.IntegerLiteral{
@@ -421,5 +422,5 @@ func (p *Parser) peekPrecedence() opPrecedence {
 
 // markAsError 메서드는 디버깅을 위해 파싱 과정에서 발생한 에러를 저장함
 func (p *Parser) markAsError(expected token.Type) {
-	p.errs = multierror.Append(p.errs, errors.Errorf("expected: %s, but got: %s", expected, p.peekToken.Type))
+	p.Errs = multierror.Append(p.Errs, errors.Errorf("expected: %s, but got: %s", expected, p.peekToken.Type))
 }
