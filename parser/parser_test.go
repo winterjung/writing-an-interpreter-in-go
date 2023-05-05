@@ -162,6 +162,8 @@ return 42;
 		}
 	})
 	t.Run("operator precedence", func(t *testing.T) {
+		t.Parallel()
+
 		cases := []struct {
 			input    string
 			expected string
@@ -170,6 +172,7 @@ return 42;
 			{input: "a+-b", expected: "(a + (-b))"},
 			{input: "-a * b", expected: "((-a) * b)"},
 			{input: "!-a", expected: "(!(-a))"},
+			{input: "1 + 2 * 3", expected: "(1 + (2 * 3))"},
 			{input: "a + b + c", expected: "((a + b) + c)"},
 			{input: "a + b - c", expected: "((a + b) - c)"},
 			{input: "a * b * c", expected: "((a * b) * c)"},
@@ -182,9 +185,11 @@ return 42;
 			{input: "3 + 4 * 5 == 3 * 1 + 4 * 5", expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
 		}
 		for _, tc := range cases {
-			program := parseProgram(t, tc.input)
-			got := program.String()
-			assert.Equal(t, tc.expected, got)
+			t.Run(tc.input, func(t *testing.T) {
+				program := parseProgram(t, tc.input)
+				got := program.String()
+				assert.Equal(t, tc.expected, got)
+			})
 		}
 	})
 }

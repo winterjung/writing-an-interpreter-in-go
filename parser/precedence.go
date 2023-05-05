@@ -5,6 +5,27 @@ import "go-interpreter/token"
 // 연산자 우선순위
 type opPrecedence int
 
+func (p opPrecedence) String() string {
+	switch p {
+	case LOWEST:
+		return "LOWEST(1)"
+	case EQ:
+		return "EQ(2)"
+	case LTGT:
+		return "LTGT(3)"
+	case SUM:
+		return "SUM(4)"
+	case PRODUCT:
+		return "PRODUCT(5)"
+	case PREFIX:
+		return "PREFIX(6)"
+	case CALL:
+		return "CALL(7)"
+	default:
+		return "UNKNOWN(0)"
+	}
+}
+
 const (
 	LOWEST  opPrecedence = iota + 1
 	EQ                   // ==

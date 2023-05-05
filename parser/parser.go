@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/go-multierror"
@@ -61,9 +62,7 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program := &ast.Program{}
 	for !p.currentTokenIs(token.EOF) {
 		stmt := p.parseStatement()
-		if stmt != nil {
-			program.Statements = append(program.Statements, stmt)
-		}
+		program.Statements = append(program.Statements, stmt)
 		p.nextToken()
 	}
 	return program
@@ -128,6 +127,8 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 }
 
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	defer untrace(trace("표현식 명령문"))
+
 	stmt := &ast.ExpressionStatement{
 		Token:      p.currToken,
 		Expression: p.parseExpression(LOWEST),
@@ -142,6 +143,8 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
+	defer untrace(trace(fmt.Sprintf("표현식, LBP: %s, RBP: %s", precedence.String(), p.peekPrecedence())))
+
 	prefix := p.prefixParseFnMap[p.currToken.Type]
 	if prefix == nil {
 		p.errs = multierror.Append(p.errs, errors.Errorf("no prefix parse function for %s", p.currToken.Type))
@@ -163,6 +166,8 @@ func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
+	defer untrace(trace("식별자"))
+
 	// nextToken()을 호출하지 않음
 	return &ast.Identifier{
 		Token: p.currToken,
@@ -171,6 +176,8 @@ func (p *Parser) parseIdentifier() ast.Expression {
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
+	defer untrace(trace("정수"))
+
 	// nextToken()을 호출하지 않음
 	i, err := strconv.ParseInt(p.currToken.Literal, 10, 64)
 	if err != nil {
@@ -184,6 +191,8 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
+	defer untrace(trace("전위 표현식"))
+
 	exp := &ast.PrefixExpression{
 		Token:    p.currToken,
 		Operator: p.currToken.Literal,
@@ -198,6 +207,8 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 }
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	defer untrace(trace(fmt.Sprintf("중위 표현식, left: %s", left)))
+
 	exp := &ast.InfixExpression{
 		Token:    p.currToken,
 		Operator: p.currToken.Literal,
