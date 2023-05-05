@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 )
 
 const (
@@ -11,17 +12,17 @@ const (
 	traceIdentPlaceholder = "\t"
 )
 
-var traceLevel = 0
+var traceLevel int32
 
 func trace(msg string) string {
-	traceLevel++
+	atomic.AddInt32(&traceLevel, 1)
 	tracePrint("BEGIN " + msg)
 	return msg
 }
 
 func untrace(msg string) {
 	tracePrint("END " + msg)
-	traceLevel--
+	atomic.AddInt32(&traceLevel, -1)
 }
 
 func tracePrint(msg string) {
@@ -31,5 +32,5 @@ func tracePrint(msg string) {
 }
 
 func indent() string {
-	return strings.Repeat(traceIdentPlaceholder, traceLevel-1)
+	return strings.Repeat(traceIdentPlaceholder, int(traceLevel-1))
 }
