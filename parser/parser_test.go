@@ -211,6 +211,8 @@ return 42;
 			{input: "!(true == true)", expected: "(!(true == true))"},
 			{input: "3 > 5 == false", expected: "((3 > 5) == false)"},
 			{input: "3 < 5 == true", expected: "((3 < 5) == true)"},
+			{input: "a + add(b * c) + d", expected: "((a + add((b * c))) + d)"},
+			{input: "add(1, add(2, 3 * 4))", expected: "add(1, add(2, (3 * 4)))"},
 		}
 		for _, tc := range cases {
 			t.Run(tc.input, func(t *testing.T) {
@@ -315,6 +317,52 @@ return 42;
 				require.Len(t, fn.Params, len(tc.expected))
 				for i, expected := range tc.expected {
 					assertLiteralExpression(t, fn.Params[i], expected)
+				}
+			})
+		}
+	})
+	t.Run("call expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `add(1, 2*3, 4 + 5)`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		call, ok := expStmt.Expression.(*ast.CallExpression)
+		require.Truef(t, ok, "expected: *ast.CallExpression, got: %T", expStmt.Expression)
+
+		assertIdentifier(t, call.Function, "add")
+		require.Len(t, call.Arguments, 3)
+		assertLiteralExpression(t, call.Arguments[0], 1)
+		assertInfixExpression(t, call.Arguments[1], 2, "*", 3)
+		assertInfixExpression(t, call.Arguments[2], 4, "+", 5)
+	})
+	t.Run("call arguments", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			input    string
+			expected []string
+		}{
+			{input: "add()", expected: []string{}},
+			{input: "add(1)", expected: []string{"1"}},
+			{input: "add(1, 2*3, 4 + 5)", expected: []string{"1", "(2 * 3)", "(4 + 5)"}},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.input, func(t *testing.T) {
+				program := parseProgram(t, tc.input)
+				require.Len(t, program.Statements, 1)
+
+				call := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.CallExpression)
+				require.Len(t, call.Arguments, len(tc.expected))
+				for i, expected := range tc.expected {
+					assert.Equal(t, call.Arguments[i].String(), expected)
 				}
 			})
 		}

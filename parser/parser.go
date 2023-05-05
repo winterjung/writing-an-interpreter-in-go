@@ -58,6 +58,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.MINUS:    p.parseInfixExpression,
 		token.ASTERISK: p.parseInfixExpression,
 		token.SLASH:    p.parseInfixExpression,
+		token.LPAREN:   p.parseCallExpression,
 	}
 
 	// currToken, peekToken 세팅
@@ -259,6 +260,41 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	p.nextToken()
 	exp.Right = p.parseExpression(precedence)
 	return exp
+}
+
+func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
+	defer untrace(trace(fmt.Sprintf("함수 호출 표현식, fn: %s", fn)))
+
+	exp := &ast.CallExpression{
+		Token:     p.currToken,
+		Function:  fn,
+		Arguments: p.parseCallArguments(),
+	}
+	return exp
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	// 빈 파라미터
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return nil
+	}
+	p.nextToken()
+
+	args := make([]ast.Expression, 0)
+	for {
+		args = append(args, p.parseExpression(LOWEST))
+		if !p.peekTokenIs(token.COMMA) {
+			break
+		}
+		p.nextToken() // token.COMMA
+		p.nextToken() // 다음 표현식
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return args
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {

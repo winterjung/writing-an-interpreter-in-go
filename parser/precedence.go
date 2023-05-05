@@ -46,5 +46,6 @@ var (
 		token.MINUS:    SUM,
 		token.ASTERISK: PRODUCT,
 		token.SLASH:    PRODUCT,
+		token.LPAREN:   CALL,
 	}
 )

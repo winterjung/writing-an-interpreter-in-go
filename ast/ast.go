@@ -216,3 +216,27 @@ func (l *FunctionLiteral) String() string {
 		l.Body,
 	)
 }
+
+// <expression>(<comma separated expressions>)
+type CallExpression struct {
+	Token     token.Token // token.LPAREN 토큰
+	Function  Expression  // 식별자(e.g. add(1, 2))거나 함수 리터럴(e.g. fn(x) { x; }(42))
+	Arguments []Expression
+}
+
+func (exp *CallExpression) expressionNode() {}
+
+func (exp *CallExpression) TokenLiteral() string { return exp.Token.Literal }
+
+func (exp *CallExpression) String() string {
+	args := make([]string, len(exp.Arguments))
+	for i, arg := range exp.Arguments {
+		args[i] = arg.String()
+	}
+
+	return fmt.Sprintf(
+		"%s(%s)",
+		exp.Function,
+		strings.Join(args, ", "),
+	)
+}
