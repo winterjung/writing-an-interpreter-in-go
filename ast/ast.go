@@ -90,6 +90,23 @@ func (s *ExpressionStatement) TokenLiteral() string { return s.Token.Literal }
 
 func (s *ExpressionStatement) String() string { return s.Expression.String() }
 
+type BlockStatement struct {
+	Token      token.Token // token.LBRACE 토큰
+	Statements []Statement
+}
+
+func (s *BlockStatement) statementNode() {}
+
+func (s *BlockStatement) TokenLiteral() string { return s.Token.Literal }
+
+func (s *BlockStatement) String() string {
+	var out bytes.Buffer
+	for _, stmt := range s.Statements {
+		_, _ = out.WriteString(stmt.String())
+	}
+	return out.String()
+}
+
 type Identifier struct {
 	Token token.Token // token.IDENTIFIER 토큰
 	Value string
@@ -153,3 +170,23 @@ func (b *Boolean) expressionNode() {}
 func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 
 func (b *Boolean) String() string { return b.Token.Literal }
+
+// if (<condition>) <consequence> else <alternative>
+type IfExpression struct {
+	Token       token.Token // token.IF 토큰
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (exp *IfExpression) expressionNode() {}
+
+func (exp *IfExpression) TokenLiteral() string { return exp.Token.Literal }
+
+func (exp *IfExpression) String() string {
+	s := fmt.Sprintf("if %s %s", exp.Condition, exp.Consequence)
+	if exp.Alternative != nil {
+		s += fmt.Sprintf(" else %s", exp.Alternative)
+	}
+	return s
+}

@@ -220,6 +220,56 @@ return 42;
 			})
 		}
 	})
+	t.Run("if expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `if (x < y) { x }`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		ifExp, ok := expStmt.Expression.(*ast.IfExpression)
+		require.Truef(t, ok, "expected: *ast.IfExpression, got: %T", expStmt.Expression)
+
+		assertInfixExpression(t, ifExp.Condition, "x", "<", "y")
+		require.Len(t, ifExp.Consequence.Statements, 1)
+		require.Nil(t, ifExp.Alternative)
+
+		consequence, ok := ifExp.Consequence.Statements[0].(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", ifExp.Consequence.Statements[0])
+		assertLiteralExpression(t, consequence.Expression, "x")
+	})
+	t.Run("if else expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `if (x < y) { x } else { y }`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		ifExp, ok := expStmt.Expression.(*ast.IfExpression)
+		require.Truef(t, ok, "expected: *ast.IfExpression, got: %T", expStmt.Expression)
+
+		assertInfixExpression(t, ifExp.Condition, "x", "<", "y")
+		require.Len(t, ifExp.Consequence.Statements, 1)
+		require.Len(t, ifExp.Alternative.Statements, 1)
+
+		consequence, ok := ifExp.Consequence.Statements[0].(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", ifExp.Consequence.Statements[0])
+		assertLiteralExpression(t, consequence.Expression, "x")
+
+		alternative, ok := ifExp.Alternative.Statements[0].(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", ifExp.Alternative.Statements[0])
+		assertLiteralExpression(t, alternative.Expression, "y")
+	})
 }
 
 func parseProgram(t *testing.T, input string) *ast.Program {

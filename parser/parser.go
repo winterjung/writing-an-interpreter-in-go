@@ -35,6 +35,9 @@ type Parser struct {
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l}
+	// 모든 파싱 함수는 아래 규약을 따름
+	//   1. 현재 파싱 함수와 연관된 토큰 타입이 currToken인 상태로 진입하고
+	//   2. 파싱하고자 하는 표현식 타입의 마지막 토큰이 currToken이 되도록 종료함
 	p.prefixParseFnMap = map[token.Type]prefixParseFn{
 		token.IDENTIFIER: p.parseIdentifier,
 		token.INTEGER:    p.parseIntegerLiteral,
@@ -43,6 +46,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.TRUE:       p.parseBoolean,
 		token.FALSE:      p.parseBoolean,
 		token.LPAREN:     p.parseGroupedExpression,
+		token.IF:         p.parseIfExpression,
 	}
 	p.infixParseFnMap = map[token.Type]infixParseFn{
 		token.EQ:       p.parseInfixExpression,
@@ -88,6 +92,8 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
+	defer untrace(trace("선언문"))
+
 	stmt := &ast.LetStatement{
 		Token: p.currToken,
 		Name:  nil,
@@ -115,6 +121,8 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 }
 
 func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	defer untrace(trace("반환문"))
+
 	stmt := &ast.ReturnStatement{
 		Token: p.currToken,
 		Value: nil,
@@ -143,6 +151,24 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 		p.nextToken()
 	}
 	return stmt
+}
+
+func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	defer untrace(trace("블록문"))
+
+	block := &ast.BlockStatement{
+		Token:      p.currToken,
+		Statements: nil,
+	}
+
+	p.nextToken()
+
+	for !p.currentTokenIs(token.RBRACE) && !p.currentTokenIs(token.EOF) {
+		stmt := p.parseStatement()
+		block.Statements = append(block.Statements, stmt)
+		p.nextToken()
+	}
+	return block
 }
 
 func (p *Parser) parseExpression(precedence opPrecedence) ast.Expression {
@@ -243,6 +269,37 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 		return nil
 	}
 
+	return exp
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	defer untrace(trace("조건 표현식"))
+
+	exp := &ast.IfExpression{
+		Token: p.currToken,
+	}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	exp.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	exp.Consequence = p.parseBlockStatement()
+
+	if p.peekTokenIs(token.ELSE) {
+		p.nextToken()
+		if !p.expectPeek(token.LBRACE) {
+			return nil
+		}
+		exp.Alternative = p.parseBlockStatement()
+	}
 	return exp
 }
 
