@@ -47,6 +47,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.FALSE:      p.parseBoolean,
 		token.LPAREN:     p.parseGroupedExpression,
 		token.IF:         p.parseIfExpression,
+		token.FUNCTION:   p.parseFunctionLiteral,
 	}
 	p.infixParseFnMap = map[token.Type]infixParseFn{
 		token.EQ:       p.parseInfixExpression,
@@ -301,6 +302,51 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		exp.Alternative = p.parseBlockStatement()
 	}
 	return exp
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	defer untrace(trace("함수"))
+
+	l := &ast.FunctionLiteral{
+		Token:  p.currToken,
+		Params: nil,
+		Body:   nil,
+	}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	l.Params = p.parseFunctionParams()
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+	l.Body = p.parseBlockStatement()
+	return l
+}
+
+func (p *Parser) parseFunctionParams() []*ast.Identifier {
+	// 빈 파라미터
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return nil
+	}
+	p.nextToken()
+
+	ids := make([]*ast.Identifier, 0)
+	for {
+		ids = append(ids, p.parseIdentifier().(*ast.Identifier))
+		if !p.peekTokenIs(token.COMMA) {
+			break
+		}
+		p.nextToken() // token.COMMA
+		p.nextToken() // 다음 식별자
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+	return ids
 }
 
 func (p *Parser) currentTokenIs(t token.Type) bool {

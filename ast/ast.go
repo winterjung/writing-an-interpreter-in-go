@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"go-interpreter/token"
 )
@@ -189,4 +190,29 @@ func (exp *IfExpression) String() string {
 		s += fmt.Sprintf(" else %s", exp.Alternative)
 	}
 	return s
+}
+
+// fn <parameters> <block statement>
+type FunctionLiteral struct {
+	Token  token.Token // token.FUNCTION 토큰
+	Params []*Identifier
+	Body   *BlockStatement
+}
+
+func (l *FunctionLiteral) expressionNode() {}
+
+func (l *FunctionLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *FunctionLiteral) String() string {
+	params := make([]string, len(l.Params))
+	for i, p := range l.Params {
+		params[i] = p.String()
+	}
+
+	return fmt.Sprintf(
+		"%s(%s) %s",
+		l.TokenLiteral(),
+		strings.Join(params, ", "),
+		l.Body,
+	)
 }

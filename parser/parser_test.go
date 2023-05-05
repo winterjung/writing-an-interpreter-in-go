@@ -270,6 +270,55 @@ return 42;
 		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", ifExp.Alternative.Statements[0])
 		assertLiteralExpression(t, alternative.Expression, "y")
 	})
+	t.Run("function literal", func(t *testing.T) {
+		t.Parallel()
+
+		input := `fn(x, y) { x + y; }`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		fn, ok := expStmt.Expression.(*ast.FunctionLiteral)
+		require.Truef(t, ok, "expected: *ast.FunctionLiteral, got: %T", expStmt.Expression)
+
+		require.Len(t, fn.Params, 2)
+		assertLiteralExpression(t, fn.Params[0], "x")
+		assertLiteralExpression(t, fn.Params[1], "y")
+
+		require.Len(t, fn.Body.Statements, 1)
+		bodyStmt := fn.Body.Statements[0].(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", fn.Body.Statements[0])
+		assertInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+	})
+	t.Run("function params", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			input    string
+			expected []string
+		}{
+			{input: "fn() {}", expected: []string{}},
+			{input: "fn(x) {}", expected: []string{"x"}},
+			{input: "fn(x, y, z) {}", expected: []string{"x", "y", "z"}},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.input, func(t *testing.T) {
+				program := parseProgram(t, tc.input)
+				require.Len(t, program.Statements, 1)
+
+				fn := program.Statements[0].(*ast.ExpressionStatement).Expression.(*ast.FunctionLiteral)
+				require.Len(t, fn.Params, len(tc.expected))
+				for i, expected := range tc.expected {
+					assertLiteralExpression(t, fn.Params[i], expected)
+				}
+			})
+		}
+	})
 }
 
 func parseProgram(t *testing.T, input string) *ast.Program {
