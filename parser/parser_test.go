@@ -74,10 +74,8 @@ return 42;
 		stmt := program.Statements[0]
 		expStmt, ok := stmt.(*ast.ExpressionStatement)
 		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
-		identifier, ok := expStmt.Expression.(*ast.Identifier)
-		require.Truef(t, ok, "expected: *ast.Identifier, got: %T", expStmt.Expression)
-		require.Equal(t, "foobar", identifier.TokenLiteral())
-		require.Equal(t, "foobar", identifier.Value)
+
+		assertLiteralExpression(t, expStmt.Expression, "foobar")
 	})
 	t.Run("integer expression", func(t *testing.T) {
 		t.Parallel()
@@ -90,28 +88,50 @@ return 42;
 		stmt := program.Statements[0]
 		expStmt, ok := stmt.(*ast.ExpressionStatement)
 		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
-		integer, ok := expStmt.Expression.(*ast.IntegerLiteral)
-		require.Truef(t, ok, "expected: *ast.IntegerLiteral, got: %T", expStmt.Expression)
-		require.Equal(t, "42", integer.TokenLiteral())
-		require.Equal(t, int64(42), integer.Value)
+
+		assertLiteralExpression(t, expStmt.Expression, 42)
+	})
+	t.Run("boolean expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `true;`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		assertLiteralExpression(t, expStmt.Expression, true)
 	})
 	t.Run("prefix expression", func(t *testing.T) {
 		t.Parallel()
 
 		cases := []struct {
-			input           string
-			expectedOp      string
-			expectedInteger int64
+			input      string
+			expectedOp string
+			expected   any
 		}{
 			{
-				input:           "!5;",
-				expectedOp:      "!",
-				expectedInteger: 5,
+				input:      "!5;",
+				expectedOp: "!",
+				expected:   5,
 			},
 			{
-				input:           "-15;",
-				expectedOp:      "-",
-				expectedInteger: 15,
+				input:      "-15;",
+				expectedOp: "-",
+				expected:   15,
+			},
+			{
+				input:      "!true;",
+				expectedOp: "!",
+				expected:   true,
+			},
+			{
+				input:      "!false;",
+				expectedOp: "!",
+				expected:   false,
 			},
 		}
 		for _, tc := range cases {
@@ -124,7 +144,7 @@ return 42;
 			prefix, ok := expStmt.Expression.(*ast.PrefixExpression)
 			require.Truef(t, ok, "expected: *ast.PrefixExpression, got: %T", expStmt.Expression)
 			require.Equal(t, tc.expectedOp, prefix.Operator)
-			assertIntegerLiteral(t, prefix.Right, tc.expectedInteger)
+			assertLiteralExpression(t, prefix.Right, tc.expected)
 		}
 	})
 	t.Run("infix expression", func(t *testing.T) {
@@ -132,9 +152,9 @@ return 42;
 
 		cases := []struct {
 			input string
-			left  int64
+			left  any
 			op    string
-			right int64
+			right any
 		}{
 			{input: "5 + 5", left: 5, op: "+", right: 5},
 			{input: "5 -5", left: 5, op: "-", right: 5},
@@ -144,6 +164,9 @@ return 42;
 			{input: "5 < 5", left: 5, op: "<", right: 5},
 			{input: "5 == 5", left: 5, op: "==", right: 5},
 			{input: "5 != 5", left: 5, op: "!=", right: 5},
+			{input: "true == true", left: true, op: "==", right: true},
+			{input: "true != false", left: true, op: "!=", right: false},
+			{input: "false == false", left: false, op: "==", right: false},
 		}
 		for _, tc := range cases {
 			t.Run(tc.input, func(t *testing.T) {
@@ -153,11 +176,8 @@ return 42;
 				stmt := program.Statements[0]
 				expStmt, ok := stmt.(*ast.ExpressionStatement)
 				require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
-				infix, ok := expStmt.Expression.(*ast.InfixExpression)
-				require.Truef(t, ok, "expected: *ast.InfixExpression, got: %T", expStmt.Expression)
-				assertIntegerLiteral(t, infix.Left, tc.left)
-				require.Equal(t, tc.op, infix.Operator)
-				assertIntegerLiteral(t, infix.Right, tc.right)
+
+				assertInfixExpression(t, expStmt.Expression, tc.left, tc.op, tc.right)
 			})
 		}
 	})
@@ -183,6 +203,10 @@ return 42;
 			{input: "5 > 4 == 3 < 4", expected: "((5 > 4) == (3 < 4))"},
 			{input: "5 < 4 != 3 > 4", expected: "((5 < 4) != (3 > 4))"},
 			{input: "3 + 4 * 5 == 3 * 1 + 4 * 5", expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+			{input: "true", expected: "true"},
+			{input: "false;", expected: "false"},
+			{input: "3 > 5 == false", expected: "((3 > 5) == false)"},
+			{input: "3 < 5 == true", expected: "((3 < 5) == true)"},
 		}
 		for _, tc := range cases {
 			t.Run(tc.input, func(t *testing.T) {
@@ -195,6 +219,8 @@ return 42;
 }
 
 func parseProgram(t *testing.T, input string) *ast.Program {
+	t.Helper()
+
 	p := New(lexer.New(input))
 	program := p.ParseProgram()
 	require.NotNil(t, program)
@@ -206,6 +232,8 @@ func parseProgram(t *testing.T, input string) *ast.Program {
 }
 
 func assertLetStatement(t *testing.T, stmt ast.Statement, name string) {
+	t.Helper()
+
 	letStmt, ok := stmt.(*ast.LetStatement)
 	require.Truef(t, ok, "expected: *ast.LetStatement, got: %T", stmt)
 	require.Equal(t, "let", letStmt.TokenLiteral())
@@ -214,8 +242,56 @@ func assertLetStatement(t *testing.T, stmt ast.Statement, name string) {
 }
 
 func assertIntegerLiteral(t *testing.T, exp ast.Expression, value int64) {
+	t.Helper()
+
 	integer, ok := exp.(*ast.IntegerLiteral)
 	require.Truef(t, ok, "expected: *ast.IntegerLiteral, got: %T", exp)
 	require.Equal(t, value, integer.Value)
 	require.Equal(t, strconv.FormatInt(value, 10), integer.TokenLiteral())
+}
+
+func assertIdentifier(t *testing.T, exp ast.Expression, value string) {
+	t.Helper()
+
+	identifier, ok := exp.(*ast.Identifier)
+	require.Truef(t, ok, "expected: *ast.Identifier, got: %T", exp)
+	require.Equal(t, value, identifier.Value)
+	require.Equal(t, value, identifier.TokenLiteral())
+}
+
+func assertBoolean(t *testing.T, exp ast.Expression, value bool) {
+	t.Helper()
+
+	identifier, ok := exp.(*ast.Boolean)
+	require.Truef(t, ok, "expected: *ast.Boolean, got: %T", exp)
+	require.Equal(t, value, identifier.Value)
+	require.Equal(t, strconv.FormatBool(value), identifier.TokenLiteral())
+}
+
+func assertLiteralExpression(t *testing.T, exp ast.Expression, expected any) {
+	t.Helper()
+
+	switch x := expected.(type) {
+	case int:
+		assertIntegerLiteral(t, exp, int64(x))
+	case int64:
+		assertIntegerLiteral(t, exp, x)
+	case string:
+		assertIdentifier(t, exp, x)
+	case bool:
+		assertBoolean(t, exp, x)
+	default:
+		t.Errorf("unknown expression, got: %T", exp)
+	}
+}
+
+func assertInfixExpression(t *testing.T, exp ast.Expression, left any, op string, right any) {
+	t.Helper()
+
+	infix, ok := exp.(*ast.InfixExpression)
+	require.Truef(t, ok, "expected: *ast.InfixExpression, got: %T", exp)
+
+	assertLiteralExpression(t, infix.Left, left)
+	require.Equal(t, op, infix.Operator)
+	assertLiteralExpression(t, infix.Right, right)
 }
