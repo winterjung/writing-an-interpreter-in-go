@@ -28,6 +28,12 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return v
 		}
 		return &object.ReturnValue{Value: v}
+	case *ast.LetStatement:
+		v := Eval(node.Value, env)
+		if isError(v) {
+			return v
+		}
+		env.Set(node.Name.Value, v)
 	// 표현식
 	case *ast.PrefixExpression:
 		right := Eval(node.Right, env)
@@ -52,6 +58,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
 		return toBooleanObject(node.Value)
+	case *ast.Identifier:
+		return evalIdentifier(node, env)
 	}
 	return nil
 }
@@ -172,6 +180,14 @@ func evalIf(exp *ast.IfExpression, env *object.Environment) object.Object {
 		return Eval(exp.Alternative, env)
 	}
 	return Null
+}
+
+func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	v, ok := env.Get(node.Value)
+	if !ok {
+		return makeError("undefined name: '%s'", node.Value)
+	}
+	return v
 }
 
 func makeError(format string, args ...any) *object.Error {

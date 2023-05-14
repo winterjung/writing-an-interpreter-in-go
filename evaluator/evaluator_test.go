@@ -161,11 +161,37 @@ func TestError(t *testing.T) {
 			input:    "if (true) { true * false }",
 			expected: "unsupported operator: 'bool' * 'bool'",
 		},
+		{
+			input:    "foobar",
+			expected: "undefined name: 'foobar'",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
 			evaluated := evalFromString(t, tc.input)
 			assertError(t, evaluated, tc.expected)
+		})
+	}
+}
+
+func TestEvalLet(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected int64
+	}{
+		{input: "let a = 5; a;", expected: 5},
+		{input: "let a = 5 * 5; a;", expected: 25},
+		{input: "let a = 5; let b = a; b;", expected: 5},
+		{input: "let a = 5; let b = a; a + b + 5;", expected: 15},
+		// TODO: 파서에서 assign 지원하기
+		//{input: "let a = 5; let b = a; a = 25; b;", expected: 5},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertInteger(t, evaluated, tc.expected)
 		})
 	}
 }
