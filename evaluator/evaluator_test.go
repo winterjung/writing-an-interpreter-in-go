@@ -22,6 +22,14 @@ func TestEvalInteger(t *testing.T) {
 		{input: "-42", expected: -42},
 		// TODO: --는 에러가 되어야함
 		//{input: "--42", expected: 42},
+		{input: "1 + 2 + 3", expected: 6},
+		{input: "-50 + 100 - 50", expected: 0},
+		{input: "-50 + 100 + -50", expected: 0},
+		{input: "4 * 4", expected: 16},
+		{input: "0 / 42", expected: 0},
+		{input: "4 * (2 + 3)", expected: 20},
+		// TODO: division by zero 검증하기
+		//{input: "1 / 0", expected: 0},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -44,6 +52,22 @@ func TestEvalBoolean(t *testing.T) {
 		{input: "!true", expected: false},
 		{input: "!!false", expected: false},
 		// TODO: !5, !null 문법은 지원하지 않음. 에러 검증 케이스 추가
+		{input: "1 < 2", expected: true},
+		{input: "1 > 2", expected: false},
+		{input: "1 == 1", expected: true},
+		{input: "1 != 1", expected: false},
+		{input: "1 == 2", expected: false},
+		{input: "1 != 2", expected: true},
+		{input: "true == true", expected: true},
+		{input: "true == false", expected: false},
+		{input: "true != false", expected: true},
+		{input: "false == false", expected: true},
+		{input: "(1 > 2) == false", expected: true},
+		{input: "(1 == 2) == false", expected: true},
+		// TODO: 아직 null은 직접 파싱하지 않음
+		//{input: "null == null", expected: true},
+		//{input: "null == true", expected: false},
+		//{input: "null == false", expected: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
