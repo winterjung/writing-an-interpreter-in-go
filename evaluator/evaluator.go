@@ -18,11 +18,15 @@ func Eval(node ast.Node) object.Object {
 		return evalStatements(node.Statements)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
+	case *ast.BlockStatement:
+		return evalStatements(node.Statements)
 	// 표현식
 	case *ast.PrefixExpression:
 		return evalPrefix(node.Operator, Eval(node.Right))
 	case *ast.InfixExpression:
 		return evalInfix(node.Operator, Eval(node.Left), Eval(node.Right))
+	case *ast.IfExpression:
+		return evalIf(node)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
@@ -108,4 +112,16 @@ func evalInfixInteger(op string, left, right object.Object) object.Object {
 	default:
 		return Null
 	}
+}
+
+func evalIf(exp *ast.IfExpression) object.Object {
+	cond := Eval(exp.Condition)
+	// 정확히 true인 값을 따짐
+	if cond == True {
+		return Eval(exp.Consequence)
+	}
+	if exp.Alternative != nil {
+		return Eval(exp.Alternative)
+	}
+	return Null
 }

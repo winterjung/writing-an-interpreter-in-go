@@ -77,6 +77,36 @@ func TestEvalBoolean(t *testing.T) {
 	}
 }
 
+func TestEvalIfElse(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: "if (true) { 10 }", expected: 10},
+		{input: "if (false) { 10 }", expected: nil},
+		// TODO: 42 같은 truthy한 값은 true로 판단하지 않음
+		// {input: "if (1) { 10 }", expected: 10},
+		// {input: "if (null) { 10 }", expected: 10},
+		{input: "if (1 == 1) { 10 }", expected: 10},
+		{input: "if (1 > 2) { 10 }", expected: nil},
+		{input: "if (1 > 2) { 10 } else { 42 }", expected: 42},
+		{input: "if (1 < 2) { 10 } else { 42 }", expected: 10},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			i, ok := tc.expected.(int)
+			if ok {
+				assertInteger(t, evaluated, int64(i))
+			} else {
+				assertNull(t, evaluated)
+			}
+		})
+	}
+}
+
 func evalFromString(t *testing.T, input string) object.Object {
 	t.Helper()
 
@@ -104,4 +134,10 @@ func assertBoolean(t *testing.T, obj object.Object, expected bool) {
 	b, ok := obj.(*object.Boolean)
 	require.Truef(t, ok, "expected: *object.Boolean, got: %T", obj)
 	require.Equal(t, expected, b.Value)
+}
+
+func assertNull(t *testing.T, obj object.Object) {
+	t.Helper()
+
+	require.Equal(t, Null, obj)
 }
