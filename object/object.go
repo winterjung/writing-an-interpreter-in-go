@@ -11,6 +11,7 @@ const (
 	BooleanObject     Type = "bool"
 	NullObject        Type = "null"
 	ReturnValueObject Type = "return value"
+	ErrorObject       Type = "error"
 )
 
 type Object interface {
@@ -62,4 +63,17 @@ func (v *ReturnValue) Type() Type {
 
 func (v *ReturnValue) String() string {
 	return v.Value.String()
+}
+
+type Error struct {
+	// TODO: 렉서에 행과 열 추적기를 붙인 후 스택트레이스 추가
+	Message string
+}
+
+func (e *Error) Type() Type {
+	return ErrorObject
+}
+
+func (e *Error) String() string {
+	return "Error: " + e.Message
 }

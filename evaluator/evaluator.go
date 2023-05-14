@@ -1,6 +1,8 @@
 package evaluator
 
 import (
+	"fmt"
+
 	"go-interpreter/ast"
 	"go-interpreter/object"
 )
@@ -21,12 +23,29 @@ func Eval(node ast.Node) object.Object {
 	case *ast.BlockStatement:
 		return evalBlockStatements(node)
 	case *ast.ReturnStatement:
-		return &object.ReturnValue{Value: Eval(node.Value)}
+		v := Eval(node.Value)
+		if isError(v) {
+			return v
+		}
+		return &object.ReturnValue{Value: v}
 	// 표현식
 	case *ast.PrefixExpression:
-		return evalPrefix(node.Operator, Eval(node.Right))
+		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
+		return evalPrefix(node.Operator, right)
 	case *ast.InfixExpression:
-		return evalInfix(node.Operator, Eval(node.Left), Eval(node.Right))
+		left := Eval(node.Left)
+		if isError(left) {
+			return left
+		}
+
+		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
+		return evalInfix(node.Operator, left, right)
 	case *ast.IfExpression:
 		return evalIf(node)
 	case *ast.IntegerLiteral:
@@ -48,9 +67,12 @@ func evalProgram(program *ast.Program) object.Object {
 	var result object.Object
 	for _, stmt := range program.Statements {
 		result = Eval(stmt)
+		switch result := result.(type) {
 		// 최종 리턴 값을 unwrap 해 반환함
-		if v, ok := result.(*object.ReturnValue); ok {
-			return v.Value
+		case *object.ReturnValue:
+			return result.Value
+		case *object.Error:
+			return result
 		}
 	}
 	return result
@@ -60,9 +82,14 @@ func evalBlockStatements(block *ast.BlockStatement) object.Object {
 	var result object.Object
 	for _, stmt := range block.Statements {
 		result = Eval(stmt)
-		// 맨 바깥에서 리턴을 처리하기 위해 unwrap 하지 않고 그대로 반환함
-		if result != nil && result.Type() == object.ReturnValueObject {
-			return result
+		if result != nil {
+			switch result.Type() {
+			// 맨 바깥에서 리턴을 처리하기 위해 unwrap 하지 않고 그대로 반환함
+			case object.ReturnValueObject:
+				return result
+			case object.ErrorObject:
+				return result
+			}
 		}
 	}
 	return result
@@ -75,7 +102,7 @@ func evalPrefix(op string, right object.Object) object.Object {
 	case "-":
 		return evalMinus(right)
 	default:
-		return Null
+		return makeError("unsupported operator: %s'%s'", op, right.Type())
 	}
 }
 
@@ -88,7 +115,7 @@ func evalBang(right object.Object) object.Object {
 
 func evalMinus(right object.Object) object.Object {
 	if right.Type() != object.IntegerObject {
-		return Null // TODO: 에러가 돼야함
+		return makeError("unsupported operator: -'%s'", right.Type())
 	}
 
 	return &object.Integer{Value: -right.(*object.Integer).Value}
@@ -104,7 +131,7 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	case "!=":
 		return toBooleanObject(left != right)
 	}
-	return Null
+	return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
 }
 
 func evalInfixInteger(op string, left, right object.Object) object.Object {
@@ -128,12 +155,15 @@ func evalInfixInteger(op string, left, right object.Object) object.Object {
 	case "!=":
 		return toBooleanObject(l != r)
 	default:
-		return Null
+		return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
 	}
 }
 
 func evalIf(exp *ast.IfExpression) object.Object {
 	cond := Eval(exp.Condition)
+	if isError(cond) {
+		return cond
+	}
 	// 정확히 true인 값을 따짐
 	if cond == True {
 		return Eval(exp.Consequence)
@@ -142,4 +172,15 @@ func evalIf(exp *ast.IfExpression) object.Object {
 		return Eval(exp.Alternative)
 	}
 	return Null
+}
+
+func makeError(format string, args ...any) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, args...)}
+}
+
+func isError(obj object.Object) bool {
+	if obj == nil {
+		return false
+	}
+	return obj.Type() == object.ErrorObject
 }

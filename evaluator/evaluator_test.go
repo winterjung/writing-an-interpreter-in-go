@@ -128,6 +128,48 @@ func TestEvalReturn(t *testing.T) {
 	}
 }
 
+func TestError(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "5 + true",
+			expected: "unsupported operator: 'int' + 'bool'",
+		},
+		{
+			// 평가가 중단돼야함
+			input:    "5 + true; 42;",
+			expected: "unsupported operator: 'int' + 'bool'",
+		},
+		{
+			input:    "false + true",
+			expected: "unsupported operator: 'bool' + 'bool'",
+		},
+		{
+			input:    "-true",
+			expected: "unsupported operator: -'bool'",
+		},
+		{
+			// 평가가 중단돼야함
+			input:    "-true; 42;",
+			expected: "unsupported operator: -'bool'",
+		},
+		{
+			input:    "if (true) { true * false }",
+			expected: "unsupported operator: 'bool' * 'bool'",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertError(t, evaluated, tc.expected)
+		})
+	}
+}
+
 func evalFromString(t *testing.T, input string) object.Object {
 	t.Helper()
 
@@ -161,4 +203,12 @@ func assertNull(t *testing.T, obj object.Object) {
 	t.Helper()
 
 	require.Equal(t, Null, obj)
+}
+
+func assertError(t *testing.T, obj object.Object, expected string) {
+	t.Helper()
+
+	err, ok := obj.(*object.Error)
+	require.Truef(t, ok, "expected: *object.Error, got: %T", obj)
+	require.Equal(t, expected, err.Message)
 }
