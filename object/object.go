@@ -1,7 +1,11 @@
 package object
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
+
+	"go-interpreter/ast"
 )
 
 type Type string
@@ -12,6 +16,7 @@ const (
 	NullObject        Type = "null"
 	ReturnValueObject Type = "return value"
 	ErrorObject       Type = "error"
+	FunctionObject    Type = "function"
 )
 
 type Object interface {
@@ -76,4 +81,27 @@ func (e *Error) Type() Type {
 
 func (e *Error) String() string {
 	return "Error: " + e.Message
+}
+
+type Function struct {
+	Params []*ast.Identifier
+	Body   *ast.BlockStatement
+	Env    *Environment
+}
+
+func (f *Function) Type() Type {
+	return FunctionObject
+}
+
+func (f *Function) String() string {
+	params := make([]string, len(f.Params))
+	for i, p := range f.Params {
+		params[i] = p.String()
+	}
+
+	return fmt.Sprintf(
+		"fn(%s) {\n%s\n}",
+		strings.Join(params, ", "),
+		f.Body,
+	)
 }

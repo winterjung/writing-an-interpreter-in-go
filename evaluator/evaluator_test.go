@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"go-interpreter/lexer"
@@ -190,6 +191,104 @@ func TestEvalLet(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertInteger(t, evaluated, tc.expected)
+		})
+	}
+}
+
+func TestEvalFunctionObject(t *testing.T) {
+	input := "fn(x) { x + 2; };"
+
+	evaluated := evalFromString(t, input)
+	fn, ok := evaluated.(*object.Function)
+	require.Truef(t, ok, "expected: *object.Function, got: %T", evaluated)
+	assert.Equal(t, 1, len(fn.Params))
+	assert.Equal(t, "x", fn.Params[0].String())
+	assert.Equal(t, "(x + 2)", fn.Body.String())
+}
+
+func TestEvalFunctionCall(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		input    string
+		expected int64
+	}{
+		{
+			name: "명시적인 return",
+			input: `
+let identity = fn(x) { return x; };
+identity(42)
+`,
+			expected: 42,
+		},
+		{
+			name: "암묵적인 return",
+			input: `
+let identity = fn(x) { x };
+identity(42)
+`,
+			expected: 42,
+		},
+		{
+			name: "다중 파라미터",
+			input: `
+let add = fn(a, b, c) { return a + b + c }
+add(1, 2, 3)
+`,
+			expected: 6,
+		},
+		{
+			name: "if-else",
+			input: `
+let max = fn(x, y) {
+  if (x > y) { x } else { y }
+};
+max(-10, 10);
+`,
+			expected: 10,
+		},
+		{
+			name: "함수 전달 전 인수 평가",
+			input: `
+let max = fn(x, y) {
+  if (x > y) { x } else { y }
+};
+max(-10 + 10, max(-42, 10));
+`,
+			expected: 10,
+		},
+		{
+			name: "익명 함수",
+			input: `
+fn(x) { x }(2 * 10)
+`,
+			expected: 20,
+		},
+		{
+			name: "고차 함수: 함수도 인자로",
+			input: `
+let addThree = fn(x) { return x + 3; }
+let twice = fn(x, func) { func(func(x)) }
+twice(3, addThree)
+`,
+			expected: 9,
+		},
+		{
+			name: "클로져",
+			input: `
+let adder = fn(x) {
+  return fn(y) { x + y };
+}
+adder(2)(5)
+`,
+			expected: 7,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			evaluated := evalFromString(t, tc.input)
 			assertInteger(t, evaluated, tc.expected)
 		})

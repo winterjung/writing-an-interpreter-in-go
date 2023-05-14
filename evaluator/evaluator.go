@@ -54,12 +54,29 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return evalInfix(node.Operator, left, right)
 	case *ast.IfExpression:
 		return evalIf(node, env)
+	case *ast.CallExpression:
+		fn := Eval(node.Function, env)
+		if isError(fn) {
+			return fn
+		}
+		args := evalExpressions(node.Arguments, env)
+		// 인자 평가 도중 에러가 발생했다면 항상 에러만 반환됨
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return applyFunction(fn, args)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
 		return toBooleanObject(node.Value)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.FunctionLiteral:
+		return &object.Function{
+			Params: node.Params,
+			Body:   node.Body,
+			Env:    env,
+		}
 	}
 	return nil
 }
@@ -188,6 +205,36 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 		return makeError("undefined name: '%s'", node.Value)
 	}
 	return v
+}
+
+func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
+	results := make([]object.Object, 0, len(exps))
+	for _, exp := range exps {
+		evaluated := Eval(exp, env)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		results = append(results, evaluated)
+	}
+	return results
+}
+
+func applyFunction(obj object.Object, args []object.Object) object.Object {
+	fn, ok := obj.(*object.Function)
+	if !ok {
+		return makeError("not a function: %s", obj.Type())
+	}
+
+	env := fn.Env.Extend()
+	for i, p := range fn.Params {
+		env.Set(p.Value, args[i])
+	}
+
+	evaluated := Eval(fn.Body, env)
+	if v, ok := evaluated.(*object.ReturnValue); ok {
+		return v.Value
+	}
+	return evaluated
 }
 
 func makeError(format string, args ...any) *object.Error {
