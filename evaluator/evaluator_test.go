@@ -19,8 +19,9 @@ func TestEvalInteger(t *testing.T) {
 	}{
 		{input: "0", expected: 0},
 		{input: "5", expected: 5},
-		// TODO: 아직 음수를 지원하지 않음
-		// {input: "-42", expected: -42},
+		{input: "-42", expected: -42},
+		// TODO: --는 에러가 되어야함
+		//{input: "--42", expected: 42},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -39,6 +40,10 @@ func TestEvalBoolean(t *testing.T) {
 	}{
 		{input: "false", expected: false},
 		{input: "true", expected: true},
+		{input: "!false", expected: true},
+		{input: "!true", expected: false},
+		{input: "!!false", expected: false},
+		// TODO: !5, !null 문법은 지원하지 않음. 에러 검증 케이스 추가
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
