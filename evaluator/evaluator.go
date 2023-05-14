@@ -13,41 +13,41 @@ var (
 	False = &object.Boolean{Value: false}
 )
 
-func Eval(node ast.Node) object.Object {
+func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
 	// 명령문
 	case *ast.Program:
-		return evalProgram(node)
+		return evalProgram(node, env)
 	case *ast.ExpressionStatement:
-		return Eval(node.Expression)
+		return Eval(node.Expression, env)
 	case *ast.BlockStatement:
-		return evalBlockStatements(node)
+		return evalBlockStatements(node, env)
 	case *ast.ReturnStatement:
-		v := Eval(node.Value)
+		v := Eval(node.Value, env)
 		if isError(v) {
 			return v
 		}
 		return &object.ReturnValue{Value: v}
 	// 표현식
 	case *ast.PrefixExpression:
-		right := Eval(node.Right)
+		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalPrefix(node.Operator, right)
 	case *ast.InfixExpression:
-		left := Eval(node.Left)
+		left := Eval(node.Left, env)
 		if isError(left) {
 			return left
 		}
 
-		right := Eval(node.Right)
+		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalInfix(node.Operator, left, right)
 	case *ast.IfExpression:
-		return evalIf(node)
+		return evalIf(node, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
@@ -63,10 +63,10 @@ func toBooleanObject(b bool) *object.Boolean {
 	return False
 }
 
-func evalProgram(program *ast.Program) object.Object {
+func evalProgram(program *ast.Program, env *object.Environment) object.Object {
 	var result object.Object
 	for _, stmt := range program.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 		switch result := result.(type) {
 		// 최종 리턴 값을 unwrap 해 반환함
 		case *object.ReturnValue:
@@ -78,10 +78,10 @@ func evalProgram(program *ast.Program) object.Object {
 	return result
 }
 
-func evalBlockStatements(block *ast.BlockStatement) object.Object {
+func evalBlockStatements(block *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 	for _, stmt := range block.Statements {
-		result = Eval(stmt)
+		result = Eval(stmt, env)
 		if result != nil {
 			switch result.Type() {
 			// 맨 바깥에서 리턴을 처리하기 위해 unwrap 하지 않고 그대로 반환함
@@ -159,17 +159,17 @@ func evalInfixInteger(op string, left, right object.Object) object.Object {
 	}
 }
 
-func evalIf(exp *ast.IfExpression) object.Object {
-	cond := Eval(exp.Condition)
+func evalIf(exp *ast.IfExpression, env *object.Environment) object.Object {
+	cond := Eval(exp.Condition, env)
 	if isError(cond) {
 		return cond
 	}
 	// 정확히 true인 값을 따짐
 	if cond == True {
-		return Eval(exp.Consequence)
+		return Eval(exp.Consequence, env)
 	}
 	if exp.Alternative != nil {
-		return Eval(exp.Alternative)
+		return Eval(exp.Alternative, env)
 	}
 	return Null
 }

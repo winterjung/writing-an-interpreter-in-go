@@ -180,7 +180,8 @@ func evalFromString(t *testing.T, input string) object.Object {
 		t.Error(p.Errs.Error())
 		t.FailNow()
 	}
-	return Eval(program)
+	env := object.NewEnvironment()
+	return Eval(program, env)
 }
 
 func assertInteger(t *testing.T, obj object.Object, expected int64) {
