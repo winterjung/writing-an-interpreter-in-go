@@ -30,6 +30,24 @@ func TestEvalInteger(t *testing.T) {
 	}
 }
 
+func TestEvalBoolean(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected bool
+	}{
+		{input: "false", expected: false},
+		{input: "true", expected: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertBoolean(t, evaluated, tc.expected)
+		})
+	}
+}
+
 func evalFromString(t *testing.T, input string) object.Object {
 	t.Helper()
 
@@ -49,4 +67,12 @@ func assertInteger(t *testing.T, obj object.Object, expected int64) {
 	i, ok := obj.(*object.Integer)
 	require.Truef(t, ok, "expected: *object.Integer, got: %T", obj)
 	require.Equal(t, expected, i.Value)
+}
+
+func assertBoolean(t *testing.T, obj object.Object, expected bool) {
+	t.Helper()
+
+	b, ok := obj.(*object.Boolean)
+	require.Truef(t, ok, "expected: *object.Boolean, got: %T", obj)
+	require.Equal(t, expected, b.Value)
 }

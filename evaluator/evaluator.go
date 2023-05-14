@@ -5,6 +5,11 @@ import (
 	"go-interpreter/object"
 )
 
+var (
+	True  = &object.Boolean{Value: true}
+	False = &object.Boolean{Value: false}
+)
+
 func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	// 명령문
@@ -15,6 +20,11 @@ func Eval(node ast.Node) object.Object {
 	// 표현식
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
+	case *ast.Boolean:
+		if node.Value {
+			return True
+		}
+		return False
 	}
 	return nil
 }
