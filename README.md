@@ -10,6 +10,6 @@ $ task lint test format
 ## Chapters
 
 - [x] 1장 렉싱
-- [x] 2장 파싱
-- [ ] 3장 평가
+- [x] 2장 파싱: 프렛 파서(pratt parser)
+- [ ] 3장 평가: 트리 순회 인터프리터(tree-walking interpreter)
 - [ ] 4장 인터프리터 확장
