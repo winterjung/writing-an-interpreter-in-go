@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"go-interpreter/evaluator"
 	"go-interpreter/lexer"
 	"go-interpreter/parser"
 )
@@ -29,6 +30,10 @@ func Start(in io.Reader, out io.Writer) {
 			_, _ = fmt.Fprintf(out, "%s\n", strings.TrimSpace(p.Errs.Error()))
 			continue
 		}
-		_, _ = fmt.Fprintf(out, "%s\n", program.String())
+
+		evaluated := evaluator.Eval(program)
+		if evaluated != nil {
+			_, _ = fmt.Fprintf(out, "%s\n", evaluated)
+		}
 	}
 }
