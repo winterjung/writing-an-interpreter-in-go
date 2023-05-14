@@ -15,11 +15,13 @@ func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	// 명령문
 	case *ast.Program:
-		return evalStatements(node.Statements)
+		return evalProgram(node)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
 	case *ast.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatements(node)
+	case *ast.ReturnStatement:
+		return &object.ReturnValue{Value: Eval(node.Value)}
 	// 표현식
 	case *ast.PrefixExpression:
 		return evalPrefix(node.Operator, Eval(node.Right))
@@ -42,10 +44,26 @@ func toBooleanObject(b bool) *object.Boolean {
 	return False
 }
 
-func evalStatements(stmts []ast.Statement) object.Object {
+func evalProgram(program *ast.Program) object.Object {
 	var result object.Object
-	for _, stmt := range stmts {
+	for _, stmt := range program.Statements {
 		result = Eval(stmt)
+		// 최종 리턴 값을 unwrap 해 반환함
+		if v, ok := result.(*object.ReturnValue); ok {
+			return v.Value
+		}
+	}
+	return result
+}
+
+func evalBlockStatements(block *ast.BlockStatement) object.Object {
+	var result object.Object
+	for _, stmt := range block.Statements {
+		result = Eval(stmt)
+		// 맨 바깥에서 리턴을 처리하기 위해 unwrap 하지 않고 그대로 반환함
+		if result != nil && result.Type() == object.ReturnValueObject {
+			return result
+		}
 	}
 	return result
 }

@@ -7,9 +7,10 @@ import (
 type Type string
 
 const (
-	IntegerObject Type = "int"
-	BooleanObject Type = "bool"
-	NullObject    Type = "null"
+	IntegerObject     Type = "int"
+	BooleanObject     Type = "bool"
+	NullObject        Type = "null"
+	ReturnValueObject Type = "return value"
 )
 
 type Object interface {
@@ -49,4 +50,16 @@ func (n *Null) Type() Type {
 
 func (n *Null) String() string {
 	return "null"
+}
+
+type ReturnValue struct {
+	Value Object
+}
+
+func (v *ReturnValue) Type() Type {
+	return ReturnValueObject
+}
+
+func (v *ReturnValue) String() string {
+	return v.Value.String()
 }

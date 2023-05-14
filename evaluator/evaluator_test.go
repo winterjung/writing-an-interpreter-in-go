@@ -107,6 +107,27 @@ func TestEvalIfElse(t *testing.T) {
 	}
 }
 
+func TestEvalReturn(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected int64
+	}{
+		{input: "return 10;", expected: 10},
+		{input: "return 10; 9;", expected: 10},
+		{input: "return 2 * 5; 9;", expected: 10},
+		{input: "9; return 10; 9;", expected: 10},
+		{input: "if (true) { if (true) { return 10; }} return 1;", expected: 10},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertInteger(t, evaluated, tc.expected)
+		})
+	}
+}
+
 func evalFromString(t *testing.T, input string) object.Object {
 	t.Helper()
 
