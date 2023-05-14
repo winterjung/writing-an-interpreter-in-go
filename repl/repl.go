@@ -34,6 +34,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
+		// TODO: 현재 환경을 디버깅 할 수 있는 구문 추가
 		evaluated := evaluator.Eval(program, env)
 		if evaluated != nil {
 			_, _ = fmt.Fprintf(out, "%s\n", evaluated)
