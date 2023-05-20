@@ -81,6 +81,11 @@ func (l *Lexer) NextToken() token.Token {
 			Type:    token.EOF,
 			Literal: "",
 		}
+	case '"':
+		tok = token.Token{
+			Type:    token.STRING,
+			Literal: l.readString(),
+		}
 	// 앞에서 처리되지 않으면 식별자로 처리
 	default:
 		if isLetter(l.ch) {
@@ -138,6 +143,22 @@ func (l *Lexer) readNumber() string {
 	for isDigit(l.ch) {
 		l.readChar()
 	}
+	return l.input[start:l.position]
+}
+
+func (l *Lexer) readString() string {
+	start := l.position + 1 // " 다음부터
+	for {
+		l.readChar()
+		if l.ch == '\\' && l.peekChar() == '"' {
+			l.readChar()
+			continue
+		}
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+
 	return l.input[start:l.position]
 }
 

@@ -145,6 +145,21 @@ let result = add(five, ten);
 				{Type: token.SEMICOLON, Literal: ";"},
 			},
 		},
+		{
+			name: "string",
+			input: `"foobar"
+"hello world"
+"hello\nworld"
+"\"escaped\""
+`,
+			expected: []token.Token{
+				{Type: token.STRING, Literal: "foobar"},
+				{Type: token.STRING, Literal: "hello world"},
+				{Type: token.STRING, Literal: "hello\\nworld"},
+				{Type: token.STRING, Literal: `\"escaped\"`},
+				{Type: token.EOF, Literal: ""},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc

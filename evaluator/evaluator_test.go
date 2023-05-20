@@ -78,6 +78,24 @@ func TestEvalBoolean(t *testing.T) {
 	}
 }
 
+func TestEvalString(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{input: `"hello world!"`, expected: "hello world!"},
+		{input: `"hello\nworld!"`, expected: "hello\\nworld!"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertString(t, evaluated, tc.expected)
+		})
+	}
+}
+
 func TestEvalIfElse(t *testing.T) {
 	t.Parallel()
 
@@ -323,6 +341,14 @@ func assertBoolean(t *testing.T, obj object.Object, expected bool) {
 	b, ok := obj.(*object.Boolean)
 	require.Truef(t, ok, "expected: *object.Boolean, got: %T", obj)
 	require.Equal(t, expected, b.Value)
+}
+
+func assertString(t *testing.T, obj object.Object, expected string) {
+	t.Helper()
+
+	s, ok := obj.(*object.String)
+	require.Truef(t, ok, "expected: *object.String, got: %T", obj)
+	require.Equal(t, expected, s.Value)
 }
 
 func assertNull(t *testing.T, obj object.Object) {

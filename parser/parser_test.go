@@ -106,6 +106,20 @@ let x 5;
 
 		assertLiteralExpression(t, expStmt.Expression, 42)
 	})
+	t.Run("string expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `"hello world";`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		assertStringLiteral(t, expStmt.Expression, "hello world")
+	})
 	t.Run("boolean expression", func(t *testing.T) {
 		t.Parallel()
 
@@ -414,6 +428,15 @@ func assertIntegerLiteral(t *testing.T, exp ast.Expression, value int64) {
 	require.Truef(t, ok, "expected: *ast.IntegerLiteral, got: %T", exp)
 	require.Equal(t, value, integer.Value)
 	require.Equal(t, strconv.FormatInt(value, 10), integer.TokenLiteral())
+}
+
+func assertStringLiteral(t *testing.T, exp ast.Expression, value string) {
+	t.Helper()
+
+	s, ok := exp.(*ast.StringLiteral)
+	require.Truef(t, ok, "expected: *ast.StringLiteral, got: %T", exp)
+	require.Equal(t, value, s.Value)
+	require.Equal(t, value, s.TokenLiteral())
 }
 
 func assertIdentifier(t *testing.T, exp ast.Expression, value string) {

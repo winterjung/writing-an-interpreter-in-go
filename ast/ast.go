@@ -130,6 +130,17 @@ func (l *IntegerLiteral) TokenLiteral() string { return l.Token.Literal }
 
 func (l *IntegerLiteral) String() string { return l.Token.Literal }
 
+type StringLiteral struct {
+	Token token.Token // token.STRING 토큰
+	Value string
+}
+
+func (l *StringLiteral) expressionNode() {}
+
+func (l *StringLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *StringLiteral) String() string { return l.Token.Literal }
+
 // <prefix operator><expression>
 type PrefixExpression struct {
 	Token    token.Token // 전위 연산자 토큰 (e.g. -, !)

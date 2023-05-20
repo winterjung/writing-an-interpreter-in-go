@@ -13,6 +13,7 @@ type Type string
 const (
 	IntegerObject     Type = "int"
 	BooleanObject     Type = "bool"
+	StringObject      Type = "string"
 	NullObject        Type = "null"
 	ReturnValueObject Type = "return value"
 	ErrorObject       Type = "error"
@@ -46,6 +47,18 @@ func (b *Boolean) Type() Type {
 
 func (b *Boolean) String() string {
 	return strconv.FormatBool(b.Value)
+}
+
+type String struct {
+	Value string
+}
+
+func (s *String) Type() Type {
+	return StringObject
+}
+
+func (s *String) String() string {
+	return s.Value
 }
 
 type Null struct{}

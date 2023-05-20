@@ -14,6 +14,7 @@ const (
 	// 식별자 + 리터럴
 	IDENTIFIER = "IDENTIFIER" // 변수 이름
 	INTEGER    = "INTEGER"
+	STRING     = "STRING"
 
 	// 연산자
 	ASSIGN   = "="

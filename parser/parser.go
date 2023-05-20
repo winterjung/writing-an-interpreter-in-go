@@ -42,6 +42,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFnMap = map[token.Type]prefixParseFn{
 		token.IDENTIFIER: p.parseIdentifier,
 		token.INTEGER:    p.parseIntegerLiteral,
+		token.STRING:     p.parseStringLiteral,
 		token.BANG:       p.parsePrefixExpression,
 		token.MINUS:      p.parsePrefixExpression,
 		token.TRUE:       p.parseBoolean,
@@ -221,6 +222,16 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	return &ast.IntegerLiteral{
 		Token: p.currToken,
 		Value: i,
+	}
+}
+
+func (p *Parser) parseStringLiteral() ast.Expression {
+	defer untrace(trace("문자열"))
+
+	// nextToken()을 호출하지 않음
+	return &ast.StringLiteral{
+		Token: p.currToken,
+		Value: p.currToken.Literal,
 	}
 }
 
