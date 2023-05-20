@@ -86,7 +86,9 @@ func TestEvalString(t *testing.T) {
 		expected string
 	}{
 		{input: `"hello world!"`, expected: "hello world!"},
+		// TODO: \n 제대로 지원하기
 		{input: `"hello\nworld!"`, expected: "hello\\nworld!"},
+		{input: `"hello" + " " + "world!"`, expected: "hello world!"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -183,6 +185,10 @@ func TestError(t *testing.T) {
 		{
 			input:    "foobar",
 			expected: "undefined name: 'foobar'",
+		},
+		{
+			input:    `"hello" - "world"`,
+			expected: "unsupported operator: 'string' - 'string'",
 		},
 	}
 	for _, tc := range cases {

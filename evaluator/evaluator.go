@@ -152,6 +152,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	if left.Type() == object.IntegerObject && right.Type() == object.IntegerObject {
 		return evalInfixInteger(op, left, right)
 	}
+	if left.Type() == object.StringObject && right.Type() == object.StringObject {
+		return evalInfixString(op, left, right)
+	}
 	switch op {
 	case "==":
 		return toBooleanObject(left == right)
@@ -181,6 +184,15 @@ func evalInfixInteger(op string, left, right object.Object) object.Object {
 		return toBooleanObject(l == r)
 	case "!=":
 		return toBooleanObject(l != r)
+	default:
+		return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
+	}
+}
+func evalInfixString(op string, left, right object.Object) object.Object {
+	l, r := left.(*object.String).Value, right.(*object.String).Value
+	switch op {
+	case "+":
+		return &object.String{Value: l + r}
 	default:
 		return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
 	}
