@@ -148,6 +148,25 @@ type PrefixExpression struct {
 	Right    Expression
 }
 
+// [<comma separated expressions>]
+type ArrayLiteral struct {
+	Token    token.Token // token.LBRACKET 토큰
+	Elements []Expression
+}
+
+func (l *ArrayLiteral) expressionNode() {}
+
+func (l *ArrayLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *ArrayLiteral) String() string {
+	elems := make([]string, len(l.Elements))
+	for i, e := range l.Elements {
+		elems[i] = e.String()
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
+}
+
 func (exp *PrefixExpression) expressionNode() {}
 
 func (exp *PrefixExpression) TokenLiteral() string { return exp.Token.Literal }

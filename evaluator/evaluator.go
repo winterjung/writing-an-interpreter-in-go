@@ -71,6 +71,13 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return toBooleanObject(node.Value)
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
+	case *ast.ArrayLiteral:
+		elems := evalExpressions(node.Elements, env)
+		// 평가 도중 에러가 발생했다면 항상 에러만 반환됨
+		if len(elems) == 1 && isError(elems[0]) {
+			return elems[0]
+		}
+		return &object.Array{Elements: elems}
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.FunctionLiteral:

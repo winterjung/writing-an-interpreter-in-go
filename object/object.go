@@ -14,6 +14,7 @@ const (
 	IntegerObject     Type = "int"
 	BooleanObject     Type = "bool"
 	StringObject      Type = "string"
+	ArrayObject       Type = "array"
 	NullObject        Type = "null"
 	ReturnValueObject Type = "return value"
 	ErrorObject       Type = "error"
@@ -60,6 +61,23 @@ func (s *String) Type() Type {
 
 func (s *String) String() string {
 	return s.Value
+}
+
+type Array struct {
+	Elements []Object
+}
+
+func (a *Array) Type() Type {
+	return ArrayObject
+}
+
+func (a *Array) String() string {
+	elems := make([]string, len(a.Elements))
+	for i, e := range a.Elements {
+		elems[i] = e.String()
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
 }
 
 type Null struct{}

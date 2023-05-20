@@ -134,6 +134,25 @@ let x 5;
 
 		assertLiteralExpression(t, expStmt.Expression, true)
 	})
+	t.Run("array expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `[1, 2*2, "3"]`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		array, ok := expStmt.Expression.(*ast.ArrayLiteral)
+		require.Truef(t, ok, "expected: *ast.ArrayLiteral, got: %T", expStmt.Expression)
+		require.Len(t, array.Elements, 3)
+		assertIntegerLiteral(t, array.Elements[0], 1)
+		assertInfixExpression(t, array.Elements[1], 2, "*", 2)
+		assertStringLiteral(t, array.Elements[2], "3")
+	})
 	t.Run("prefix expression", func(t *testing.T) {
 		t.Parallel()
 

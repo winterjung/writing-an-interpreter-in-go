@@ -99,6 +99,24 @@ func TestEvalString(t *testing.T) {
 	}
 }
 
+func TestEvalArray(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected []int
+	}{
+		{input: "[]", expected: []int{}},
+		{input: "[1]", expected: []int{1}},
+		{input: "[1, 2 + 3]", expected: []int{1, 5}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertArray(t, evaluated, tc.expected)
+		})
+	}
+}
 func TestEvalIfElse(t *testing.T) {
 	t.Parallel()
 
@@ -383,6 +401,17 @@ func assertString(t *testing.T, obj object.Object, expected string) {
 	s, ok := obj.(*object.String)
 	require.Truef(t, ok, "expected: *object.String, got: %T", obj)
 	require.Equal(t, expected, s.Value)
+}
+
+func assertArray(t *testing.T, obj object.Object, expected []int) {
+	t.Helper()
+
+	array, ok := obj.(*object.Array)
+	require.Truef(t, ok, "expected: *object.Array, got: %T", obj)
+	require.Len(t, array.Elements, len(expected))
+	for i, elem := range expected {
+		assertInteger(t, array.Elements[i], int64(elem))
+	}
 }
 
 func assertNull(t *testing.T, obj object.Object) {

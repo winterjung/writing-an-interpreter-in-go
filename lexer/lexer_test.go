@@ -39,6 +39,7 @@ let add = fn(x, y) {
   x + y;
 };
 let result = add(five, ten);
+[1, 2];
 `,
 			expected: []token.Token{
 				{Type: token.LET, Literal: "let"},
@@ -76,6 +77,12 @@ let result = add(five, ten);
 				{Type: token.COMMA, Literal: ","},
 				{Type: token.IDENTIFIER, Literal: "ten"},
 				{Type: token.RPAREN, Literal: ")"},
+				{Type: token.SEMICOLON, Literal: ";"},
+				{Type: token.LBRACKET, Literal: "["},
+				{Type: token.INTEGER, Literal: "1"},
+				{Type: token.COMMA, Literal: ","},
+				{Type: token.INTEGER, Literal: "2"},
+				{Type: token.RBRACKET, Literal: "]"},
 				{Type: token.SEMICOLON, Literal: ";"},
 				{Type: token.EOF, Literal: ""},
 			},
