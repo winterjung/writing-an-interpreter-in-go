@@ -62,6 +62,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.ASTERISK: p.parseInfixExpression,
 		token.SLASH:    p.parseInfixExpression,
 		token.LPAREN:   p.parseCallExpression,
+		token.LBRACKET: p.parseIndexExpression,
 	}
 
 	// currToken, peekToken 세팅
@@ -294,6 +295,24 @@ func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
 		Function:  fn,
 		Arguments: p.parseListExpression(token.RPAREN),
 	}
+}
+
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	defer untrace(trace(fmt.Sprintf("인덱스 표현식, left: %s", left)))
+
+	exp := &ast.IndexExpression{
+		Token: p.currToken,
+		Left:  left,
+		Index: nil,
+	}
+
+	p.nextToken()
+	exp.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+	return exp
 }
 
 func (p *Parser) parseListExpression(until token.Type) []ast.Expression {

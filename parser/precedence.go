@@ -21,6 +21,8 @@ func (p opPrecedence) String() string {
 		return "PREFIX(6)"
 	case CALL:
 		return "CALL(7)"
+	case INDEX:
+		return "INDEX(8)"
 	default:
 		return "UNKNOWN(0)"
 	}
@@ -34,6 +36,7 @@ const (
 	PRODUCT              // *
 	PREFIX               // -x or !x
 	CALL                 // x()
+	INDEX                // x[index]
 )
 
 var (
@@ -47,5 +50,6 @@ var (
 		token.ASTERISK: PRODUCT,
 		token.SLASH:    PRODUCT,
 		token.LPAREN:   CALL,
+		token.LBRACKET: INDEX,
 	}
 )

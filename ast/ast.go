@@ -270,3 +270,18 @@ func (exp *CallExpression) String() string {
 		strings.Join(args, ", "),
 	)
 }
+
+// <expression>[<expression>]
+type IndexExpression struct {
+	Token token.Token // token.LBRACKET 토큰
+	Left  Expression
+	Index Expression
+}
+
+func (exp *IndexExpression) expressionNode() {}
+
+func (exp *IndexExpression) TokenLiteral() string { return exp.Token.Literal }
+
+func (exp *IndexExpression) String() string {
+	return fmt.Sprintf("(%s[%s])", exp.Left, exp.Index)
+}

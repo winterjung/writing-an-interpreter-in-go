@@ -153,6 +153,24 @@ let x 5;
 		assertInfixExpression(t, array.Elements[1], 2, "*", 2)
 		assertStringLiteral(t, array.Elements[2], "3")
 	})
+	t.Run("index expression", func(t *testing.T) {
+		t.Parallel()
+
+		input := `myArray[1+1]`
+
+		program := parseProgram(t, input)
+		require.Len(t, program.Statements, 1)
+
+		stmt := program.Statements[0]
+		expStmt, ok := stmt.(*ast.ExpressionStatement)
+		require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+		index, ok := expStmt.Expression.(*ast.IndexExpression)
+		require.Truef(t, ok, "expected: *ast.IndexExpression, got: %T", expStmt.Expression)
+
+		assertIdentifier(t, index.Left, "myArray")
+		assertInfixExpression(t, index.Index, 1, "+", 1)
+	})
 	t.Run("prefix expression", func(t *testing.T) {
 		t.Parallel()
 
@@ -261,6 +279,7 @@ let x 5;
 			{input: "3 < 5 == true", expected: "((3 < 5) == true)"},
 			{input: "a + add(b * c) + d", expected: "((a + add((b * c))) + d)"},
 			{input: "add(1, add(2, 3 * 4))", expected: "add(1, add(2, (3 * 4)))"},
+			{input: "1 * [2, 3][4 + 5] / 6", expected: "((1 * ([2, 3][(4 + 5)])) / 6)"},
 		}
 		for _, tc := range cases {
 			t.Run(tc.input, func(t *testing.T) {

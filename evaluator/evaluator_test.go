@@ -117,6 +117,37 @@ func TestEvalArray(t *testing.T) {
 		})
 	}
 }
+
+func TestEvalArrayIndex(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: "[1, 2][0]", expected: 1},
+		{input: "[1, 2][1]", expected: 2},
+		{input: "let i = 0; [1][i]", expected: 1},
+		{input: "[1, 2][0+1]", expected: 2},
+		{input: "let a = [1]; a[0];", expected: 1},
+		{input: "let a = [1, 2]; a[0] + a[1];", expected: 3},
+		{input: "[1, 2][2]", expected: errors.New("list index out of range")},
+		{input: "[1, 2][-1]", expected: errors.New("list index out of range")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+
+			switch expected := tc.expected.(type) {
+			case int:
+				assertInteger(t, evaluated, int64(expected))
+			case error:
+				assertError(t, evaluated, expected.Error())
+			}
+		})
+	}
+}
+
 func TestEvalIfElse(t *testing.T) {
 	t.Parallel()
 

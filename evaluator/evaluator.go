@@ -52,6 +52,17 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return right
 		}
 		return evalInfix(node.Operator, left, right)
+	case *ast.IndexExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+
+		index := Eval(node.Index, env)
+		if isError(index) {
+			return index
+		}
+		return evalIndex(left, index)
 	case *ast.IfExpression:
 		return evalIf(node, env)
 	case *ast.CallExpression:
@@ -203,6 +214,23 @@ func evalInfixString(op string, left, right object.Object) object.Object {
 	default:
 		return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
 	}
+}
+
+func evalIndex(left, index object.Object) object.Object {
+	if left.Type() == object.ArrayObject && index.Type() == object.IntegerObject {
+		return evalArrayIndex(left, index)
+	}
+	return makeError("unsupported index: '%s'", left.Type())
+}
+
+func evalArrayIndex(left, index object.Object) object.Object {
+	array := left.(*object.Array)
+	idx := index.(*object.Integer).Value
+	max := len(array.Elements) - 1
+	if idx < 0 || int(idx) > max {
+		return makeError("list index out of range")
+	}
+	return array.Elements[idx]
 }
 
 func evalIf(exp *ast.IfExpression, env *object.Environment) object.Object {
