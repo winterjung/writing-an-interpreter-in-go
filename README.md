@@ -5,6 +5,8 @@
 ```shell
 $ brew install go-task
 $ task lint test format
+# Run REPL
+$ task run
 ```
 
 ## Chapters
