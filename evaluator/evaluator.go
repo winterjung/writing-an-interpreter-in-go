@@ -214,11 +214,15 @@ func evalIf(exp *ast.IfExpression, env *object.Environment) object.Object {
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	v, ok := env.Get(node.Value)
-	if !ok {
-		return makeError("undefined name: '%s'", node.Value)
+	if v, ok := env.Get(node.Value); ok {
+		return v
 	}
-	return v
+
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
+
+	return makeError("undefined name: '%s'", node.Value)
 }
 
 func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
@@ -234,21 +238,24 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 }
 
 func applyFunction(obj object.Object, args []object.Object) object.Object {
-	fn, ok := obj.(*object.Function)
-	if !ok {
+	switch fn := obj.(type) {
+	case *object.Function:
+		env := fn.Env.Extend()
+		for i, p := range fn.Params {
+			env.Set(p.Value, args[i])
+		}
+
+		evaluated := Eval(fn.Body, env)
+		// unwrap
+		if v, ok := evaluated.(*object.ReturnValue); ok {
+			return v.Value
+		}
+		return evaluated
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
 		return makeError("not a function: %s", obj.Type())
 	}
-
-	env := fn.Env.Extend()
-	for i, p := range fn.Params {
-		env.Set(p.Value, args[i])
-	}
-
-	evaluated := Eval(fn.Body, env)
-	if v, ok := evaluated.(*object.ReturnValue); ok {
-		return v.Value
-	}
-	return evaluated
 }
 
 func makeError(format string, args ...any) *object.Error {

@@ -18,6 +18,7 @@ const (
 	ReturnValueObject Type = "return value"
 	ErrorObject       Type = "error"
 	FunctionObject    Type = "function"
+	BuiltinObject     Type = "builtin"
 )
 
 type Object interface {
@@ -117,4 +118,18 @@ func (f *Function) String() string {
 		strings.Join(params, ", "),
 		f.Body,
 	)
+}
+
+type BuiltinFunc func(args ...Object) Object
+
+type Builtin struct {
+	Fn BuiltinFunc
+}
+
+func (b *Builtin) Type() Type {
+	return BuiltinObject
+}
+
+func (b *Builtin) String() string {
+	return "builtin function"
 }

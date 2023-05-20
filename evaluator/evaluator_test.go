@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -315,6 +316,33 @@ adder(2)(5)
 		t.Run(tc.name, func(t *testing.T) {
 			evaluated := evalFromString(t, tc.input)
 			assertInteger(t, evaluated, tc.expected)
+		})
+	}
+}
+
+func TestEvalBuiltinFunctions(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: `len("")`, expected: 0},
+		{input: `len("four")`, expected: 4},
+		{input: `len(1)`, expected: errors.New("unsupported argument type of len(): 'int'")},
+		{input: `len("one", "two")`, expected: errors.New("len() takes exactly one argument: 2 given")},
+		{input: `len()`, expected: errors.New("len() takes exactly one argument: 0 given")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+
+			switch expected := tc.expected.(type) {
+			case int:
+				assertInteger(t, evaluated, int64(expected))
+			case error:
+				assertError(t, evaluated, expected.Error())
+			}
 		})
 	}
 }
