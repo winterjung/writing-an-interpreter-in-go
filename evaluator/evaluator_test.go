@@ -151,6 +151,71 @@ func TestEvalArrayIndex(t *testing.T) {
 	}
 }
 
+func TestEvalHash(t *testing.T) {
+	t.Parallel()
+
+	input := `let two = "two";
+{
+  "one": 10 - 9,
+  two: 1 + 1,
+  "thr"+"ee": 6/2,
+  4: 4,
+  true: 5,
+  false: 6,
+}`
+	evaluated := evalFromString(t, input)
+
+	hash, ok := evaluated.(*object.Hash)
+	require.Truef(t, ok, "expected: *object.Hash, got: %T", evaluated)
+
+	expected := map[object.HashKey]int64{
+		(&object.String{Value: "one"}).HashKey():   1,
+		(&object.String{Value: "two"}).HashKey():   2,
+		(&object.String{Value: "three"}).HashKey(): 3,
+		(&object.Integer{Value: 4}).HashKey():      4,
+		True.HashKey():                             5,
+		False.HashKey():                            6,
+	}
+	require.Len(t, hash.Pairs, len(expected))
+	for k, v := range expected {
+		pair, ok := hash.Pairs[k]
+		require.Truef(t, ok, "%s does not exist in %v", k, hash.Pairs)
+		assertInteger(t, pair.Value, v)
+	}
+}
+
+func TestEvalHashIndex(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: `{"a": 5}["a"]`, expected: 5},
+		{input: `{"a": 5}["b"]`, expected: nil},
+		{input: `let k = "a"; {"a": 5}[k]`, expected: 5},
+		{input: `{}["b"]`, expected: nil},
+		{input: `{5: 5}[5]`, expected: 5},
+		{input: `{true: 5}[true]`, expected: 5},
+		{input: `{2: 5}[[1, 2]]`, expected: errors.New("unhashable type: 'array'")},
+		{input: `{fn(x) { x }: 5}[2]`, expected: errors.New("unhashable type: 'function'")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+
+			switch expected := tc.expected.(type) {
+			case int:
+				assertInteger(t, evaluated, int64(expected))
+			case nil:
+				assertNull(t, evaluated)
+			case error:
+				assertError(t, evaluated, expected.Error())
+			}
+		})
+	}
+}
+
 func TestEvalIfElse(t *testing.T) {
 	t.Parallel()
 

@@ -44,6 +44,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.INTEGER:    p.parseIntegerLiteral,
 		token.STRING:     p.parseStringLiteral,
 		token.LBRACKET:   p.parseArrayLiteral,
+		token.LBRACE:     p.parseHashLiteral,
 		token.BANG:       p.parsePrefixExpression,
 		token.MINUS:      p.parsePrefixExpression,
 		token.TRUE:       p.parseBoolean,
@@ -253,6 +254,37 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 		Token:    p.currToken,
 		Elements: p.parseListExpression(token.RBRACKET),
 	}
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	defer untrace(trace("해시"))
+
+	hash := &ast.HashLiteral{
+		Token: p.currToken,
+		Pairs: make(map[ast.Expression]ast.Expression),
+	}
+	for !p.peekTokenIs(token.RBRACE) {
+		p.nextToken()
+		k := p.parseExpression(LOWEST)
+
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		v := p.parseExpression(LOWEST)
+
+		hash.Pairs[k] = v
+
+		// 하나의 pair 파싱 후엔 '}'로 끝나거나 ','로 다른 pair 파싱을 이어가야함
+		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+			return nil
+		}
+	}
+
+	if !p.expectPeek(token.RBRACE) {
+		return nil
+	}
+	return hash
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {

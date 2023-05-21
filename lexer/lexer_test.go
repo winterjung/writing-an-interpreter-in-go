@@ -167,6 +167,18 @@ let result = add(five, ten);
 				{Type: token.EOF, Literal: ""},
 			},
 		},
+		{
+			name:  "hash",
+			input: `{"foo": "bar"}`,
+			expected: []token.Token{
+				{Type: token.LBRACE, Literal: "{"},
+				{Type: token.STRING, Literal: "foo"},
+				{Type: token.COLON, Literal: ":"},
+				{Type: token.STRING, Literal: "bar"},
+				{Type: token.RBRACE, Literal: "}"},
+				{Type: token.EOF, Literal: ""},
+			},
+		},
 	}
 	for _, tc := range cases {
 		tc := tc

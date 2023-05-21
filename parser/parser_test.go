@@ -153,6 +153,93 @@ let x 5;
 		assertInfixExpression(t, array.Elements[1], 2, "*", 2)
 		assertStringLiteral(t, array.Elements[2], "3")
 	})
+	t.Run("hash", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			name     string
+			input    string
+			expected map[any]func(exp ast.Expression)
+		}{
+			{
+				name:  "string key",
+				input: `{"one": 1, "two": 2, "three": 3}`,
+				expected: map[any]func(exp ast.Expression){
+					"one": func(exp ast.Expression) {
+						assertIntegerLiteral(t, exp, 1)
+					},
+					"two": func(exp ast.Expression) {
+						assertIntegerLiteral(t, exp, 2)
+					},
+					"three": func(exp ast.Expression) {
+						assertIntegerLiteral(t, exp, 3)
+					},
+				},
+			},
+			{
+				name:  "int & bool key",
+				input: `{1: "one", -2: "two", true: true, false: 4}`,
+				expected: map[any]func(exp ast.Expression){
+					int64(1): func(exp ast.Expression) {
+						assertStringLiteral(t, exp, "one")
+					},
+					int64(-2): func(exp ast.Expression) {
+						assertStringLiteral(t, exp, "two")
+					},
+					true: func(exp ast.Expression) {
+						assertBoolean(t, exp, true)
+					},
+					false: func(exp ast.Expression) {
+						assertIntegerLiteral(t, exp, 4)
+					},
+				},
+			},
+			{
+				name:  "infix value",
+				input: `{"one": 0+1, "two": 10 / 5}`,
+				expected: map[any]func(exp ast.Expression){
+					"one": func(exp ast.Expression) {
+						assertInfixExpression(t, exp, 0, "+", 1)
+					},
+					"two": func(exp ast.Expression) {
+						assertInfixExpression(t, exp, 10, "/", 5)
+					},
+				},
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				program := parseProgram(t, tc.input)
+				require.Len(t, program.Statements, 1)
+
+				stmt := program.Statements[0]
+				expStmt, ok := stmt.(*ast.ExpressionStatement)
+				require.Truef(t, ok, "expected: *ast.ExpressionStatement, got: %T", stmt)
+
+				hash, ok := expStmt.Expression.(*ast.HashLiteral)
+				require.Truef(t, ok, "expected: *ast.HashLiteral, got: %T", expStmt.Expression)
+				require.Len(t, hash.Pairs, len(tc.expected))
+
+				for k, v := range hash.Pairs {
+					switch k := k.(type) {
+					case *ast.StringLiteral:
+						assertFunc, ok := tc.expected[k.Value]
+						require.Truef(t, ok, "%s does not exist in %v", k, tc.expected)
+						assertFunc(v)
+					case *ast.Boolean:
+						assertFunc, ok := tc.expected[k.Value]
+						require.Truef(t, ok, "%s does not exist in %v", k, tc.expected)
+						assertFunc(v)
+					case *ast.IntegerLiteral:
+						assertFunc, ok := tc.expected[k.Value]
+						require.Truef(t, ok, "%s does not exist in %v", k, tc.expected)
+						assertFunc(v)
+					}
+				}
+			})
+		}
+	})
 	t.Run("index expression", func(t *testing.T) {
 		t.Parallel()
 
