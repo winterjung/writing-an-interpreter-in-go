@@ -19,6 +19,7 @@ func Start(in io.Reader, out io.Writer) {
 	env := object.NewEnvironment()
 
 	for {
+		// TODO: 멀티라인 입력 지원
 		_, _ = fmt.Fprint(out, PROMPT)
 		if !scanner.Scan() {
 			return

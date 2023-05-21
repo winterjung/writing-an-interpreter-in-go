@@ -1,6 +1,11 @@
 package evaluator
 
-import "go-interpreter/object"
+import (
+	"fmt"
+	"strings"
+
+	"go-interpreter/object"
+)
 
 var builtins = map[string]*object.Builtin{
 	"len": {
@@ -17,6 +22,16 @@ var builtins = map[string]*object.Builtin{
 			default:
 				return makeError("unsupported argument type of len(): '%s'", arg.Type())
 			}
+		},
+	},
+	"print": {
+		Fn: func(args ...object.Object) object.Object {
+			ss := make([]string, len(args))
+			for i, arg := range args {
+				ss[i] = arg.String()
+			}
+			_, _ = fmt.Println(strings.Join(ss, " "))
+			return nil
 		},
 	},
 }
