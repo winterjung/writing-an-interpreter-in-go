@@ -52,6 +52,17 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return right
 		}
 		return evalInfix(node.Operator, left, right)
+	case *ast.IndexExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+
+		index := Eval(node.Index, env)
+		if isError(index) {
+			return index
+		}
+		return evalIndex(left, index)
 	case *ast.IfExpression:
 		return evalIf(node, env)
 	case *ast.CallExpression:
@@ -69,6 +80,17 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return &object.Integer{Value: node.Value}
 	case *ast.Boolean:
 		return toBooleanObject(node.Value)
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Value}
+	case *ast.ArrayLiteral:
+		elems := evalExpressions(node.Elements, env)
+		// 평가 도중 에러가 발생했다면 항상 에러만 반환됨
+		if len(elems) == 1 && isError(elems[0]) {
+			return elems[0]
+		}
+		return &object.Array{Elements: elems}
+	case *ast.HashLiteral:
+		return evalHash(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.FunctionLiteral:
@@ -150,6 +172,9 @@ func evalInfix(op string, left, right object.Object) object.Object {
 	if left.Type() == object.IntegerObject && right.Type() == object.IntegerObject {
 		return evalInfixInteger(op, left, right)
 	}
+	if left.Type() == object.StringObject && right.Type() == object.StringObject {
+		return evalInfixString(op, left, right)
+	}
 	switch op {
 	case "==":
 		return toBooleanObject(left == right)
@@ -183,6 +208,52 @@ func evalInfixInteger(op string, left, right object.Object) object.Object {
 		return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
 	}
 }
+func evalInfixString(op string, left, right object.Object) object.Object {
+	l, r := left.(*object.String).Value, right.(*object.String).Value
+	switch op {
+	case "+":
+		return &object.String{Value: l + r}
+	default:
+		return makeError("unsupported operator: '%s' %s '%s'", left.Type(), op, right.Type())
+	}
+}
+
+func evalIndex(left, index object.Object) object.Object {
+	if left.Type() == object.ArrayObject && index.Type() == object.IntegerObject {
+		return evalArrayIndex(left, index)
+	}
+	if left.Type() == object.HashObject {
+		return evalHashIndex(left, index)
+	}
+	return makeError("unsupported index: '%s'", left.Type())
+}
+
+func evalArrayIndex(left, index object.Object) object.Object {
+	array := left.(*object.Array)
+	idx := index.(*object.Integer).Value
+	max := int64(len(array.Elements) - 1)
+	if idx < 0 {
+		idx = max + idx + 1
+	}
+	if idx < 0 || idx > max {
+		return makeError("list index out of range")
+	}
+	return array.Elements[idx]
+}
+
+func evalHashIndex(left, index object.Object) object.Object {
+	hash := left.(*object.Hash)
+	key, ok := index.(object.Hashable)
+	if !ok {
+		return makeError("unhashable type: '%s'", index.Type())
+	}
+
+	pair, found := hash.Pairs[key.HashKey()]
+	if !found {
+		return Null
+	}
+	return pair.Value
+}
 
 func evalIf(exp *ast.IfExpression, env *object.Environment) object.Object {
 	cond := Eval(exp.Condition, env)
@@ -199,12 +270,46 @@ func evalIf(exp *ast.IfExpression, env *object.Environment) object.Object {
 	return Null
 }
 
-func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	v, ok := env.Get(node.Value)
-	if !ok {
-		return makeError("undefined name: '%s'", node.Value)
+func evalHash(node *ast.HashLiteral, env *object.Environment) object.Object {
+	pairs := make(map[object.HashKey]object.HashPair)
+
+	for k, v := range node.Pairs {
+		k := Eval(k, env)
+		if isError(k) {
+			return k
+		}
+
+		hashKey, ok := k.(object.Hashable)
+		if !ok {
+			return makeError("unhashable type: '%s'", k.Type())
+		}
+
+		v := Eval(v, env)
+		if isError(v) {
+			return v
+		}
+
+		pairs[hashKey.HashKey()] = object.HashPair{
+			Key:   k,
+			Value: v,
+		}
 	}
-	return v
+
+	return &object.Hash{
+		Pairs: pairs,
+	}
+}
+
+func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
+	if v, ok := env.Get(node.Value); ok {
+		return v
+	}
+
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
+
+	return makeError("undefined name: '%s'", node.Value)
 }
 
 func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Object {
@@ -220,21 +325,24 @@ func evalExpressions(exps []ast.Expression, env *object.Environment) []object.Ob
 }
 
 func applyFunction(obj object.Object, args []object.Object) object.Object {
-	fn, ok := obj.(*object.Function)
-	if !ok {
+	switch fn := obj.(type) {
+	case *object.Function:
+		env := fn.Env.Extend()
+		for i, p := range fn.Params {
+			env.Set(p.Value, args[i])
+		}
+
+		evaluated := Eval(fn.Body, env)
+		// unwrap
+		if v, ok := evaluated.(*object.ReturnValue); ok {
+			return v.Value
+		}
+		return evaluated
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
 		return makeError("not a function: %s", obj.Type())
 	}
-
-	env := fn.Env.Extend()
-	for i, p := range fn.Params {
-		env.Set(p.Value, args[i])
-	}
-
-	evaluated := Eval(fn.Body, env)
-	if v, ok := evaluated.(*object.ReturnValue); ok {
-		return v.Value
-	}
-	return evaluated
 }
 
 func makeError(format string, args ...any) *object.Error {

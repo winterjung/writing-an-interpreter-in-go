@@ -42,6 +42,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFnMap = map[token.Type]prefixParseFn{
 		token.IDENTIFIER: p.parseIdentifier,
 		token.INTEGER:    p.parseIntegerLiteral,
+		token.STRING:     p.parseStringLiteral,
+		token.LBRACKET:   p.parseArrayLiteral,
+		token.LBRACE:     p.parseHashLiteral,
 		token.BANG:       p.parsePrefixExpression,
 		token.MINUS:      p.parsePrefixExpression,
 		token.TRUE:       p.parseBoolean,
@@ -60,6 +63,7 @@ func New(l *lexer.Lexer) *Parser {
 		token.ASTERISK: p.parseInfixExpression,
 		token.SLASH:    p.parseInfixExpression,
 		token.LPAREN:   p.parseCallExpression,
+		token.LBRACKET: p.parseIndexExpression,
 	}
 
 	// currToken, peekToken 세팅
@@ -224,6 +228,16 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	}
 }
 
+func (p *Parser) parseStringLiteral() ast.Expression {
+	defer untrace(trace("문자열"))
+
+	// nextToken()을 호출하지 않음
+	return &ast.StringLiteral{
+		Token: p.currToken,
+		Value: p.currToken.Literal,
+	}
+}
+
 func (p *Parser) parseBoolean() ast.Expression {
 	defer untrace(trace("불리언"))
 
@@ -231,6 +245,46 @@ func (p *Parser) parseBoolean() ast.Expression {
 		Token: p.currToken,
 		Value: p.currentTokenIs(token.TRUE),
 	}
+}
+
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	defer untrace(trace("배열"))
+
+	return &ast.ArrayLiteral{
+		Token:    p.currToken,
+		Elements: p.parseListExpression(token.RBRACKET),
+	}
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	defer untrace(trace("해시"))
+
+	hash := &ast.HashLiteral{
+		Token: p.currToken,
+		Pairs: make(map[ast.Expression]ast.Expression),
+	}
+	for !p.peekTokenIs(token.RBRACE) {
+		p.nextToken()
+		k := p.parseExpression(LOWEST)
+
+		if !p.expectPeek(token.COLON) {
+			return nil
+		}
+		p.nextToken()
+		v := p.parseExpression(LOWEST)
+
+		hash.Pairs[k] = v
+
+		// 하나의 pair 파싱 후엔 '}'로 끝나거나 ','로 다른 pair 파싱을 이어가야함
+		if !p.peekTokenIs(token.RBRACE) && !p.expectPeek(token.COMMA) {
+			return nil
+		}
+	}
+
+	if !p.expectPeek(token.RBRACE) {
+		return nil
+	}
+	return hash
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
@@ -268,25 +322,42 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
 	defer untrace(trace(fmt.Sprintf("함수 호출 표현식, fn: %s", fn)))
 
-	exp := &ast.CallExpression{
+	return &ast.CallExpression{
 		Token:     p.currToken,
 		Function:  fn,
-		Arguments: p.parseCallArguments(),
+		Arguments: p.parseListExpression(token.RPAREN),
+	}
+}
+
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	defer untrace(trace(fmt.Sprintf("인덱스 표현식, left: %s", left)))
+
+	exp := &ast.IndexExpression{
+		Token: p.currToken,
+		Left:  left,
+		Index: nil,
+	}
+
+	p.nextToken()
+	exp.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
 	}
 	return exp
 }
 
-func (p *Parser) parseCallArguments() []ast.Expression {
+func (p *Parser) parseListExpression(until token.Type) []ast.Expression {
 	// 빈 파라미터
-	if p.peekTokenIs(token.RPAREN) {
+	if p.peekTokenIs(until) {
 		p.nextToken()
 		return nil
 	}
 	p.nextToken()
 
-	args := make([]ast.Expression, 0)
+	list := make([]ast.Expression, 0)
 	for {
-		args = append(args, p.parseExpression(LOWEST))
+		list = append(list, p.parseExpression(LOWEST))
 		if !p.peekTokenIs(token.COMMA) {
 			break
 		}
@@ -294,10 +365,10 @@ func (p *Parser) parseCallArguments() []ast.Expression {
 		p.nextToken() // 다음 표현식
 	}
 
-	if !p.expectPeek(token.RPAREN) {
+	if !p.expectPeek(until) {
 		return nil
 	}
-	return args
+	return list
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {

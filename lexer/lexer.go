@@ -18,6 +18,10 @@ type Lexer struct {
 	ch byte
 }
 
+const (
+	eof = 0
+)
+
 // TODO: io.Reader와 파일 이름으로 초기화 해 토큰에 파일 이름과 행 번호를 붙여,
 // 렉싱과 파싱에서 생긴 에러를 더 쉽게 추적하도록 만들기
 func New(input string) *Lexer {
@@ -68,6 +72,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.COMMA, l.ch)
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
+	case ':':
+		tok = newToken(token.COLON, l.ch)
 	case '(':
 		tok = newToken(token.LPAREN, l.ch)
 	case ')':
@@ -76,10 +82,19 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
-	case 0:
+	case '[':
+		tok = newToken(token.LBRACKET, l.ch)
+	case ']':
+		tok = newToken(token.RBRACKET, l.ch)
+	case eof:
 		tok = token.Token{
 			Type:    token.EOF,
 			Literal: "",
+		}
+	case '"':
+		tok = token.Token{
+			Type:    token.STRING,
+			Literal: l.readString(),
 		}
 	// 앞에서 처리되지 않으면 식별자로 처리
 	default:
@@ -108,7 +123,7 @@ func (l *Lexer) NextToken() token.Token {
 // 렉서가 현재 보고 있는 위치를 다음으로 이동하는 메서드
 func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
-		l.ch = 0
+		l.ch = eof
 	} else {
 		l.ch = l.input[l.readPosition]
 	}
@@ -119,7 +134,7 @@ func (l *Lexer) readChar() {
 // 현재 위치를 바꾸지 않고 다음 문자만 살펴보는 메서드
 func (l *Lexer) peekChar() byte {
 	if l.readPosition >= len(l.input) {
-		return 0
+		return eof
 	}
 	return l.input[l.readPosition]
 }
@@ -138,6 +153,22 @@ func (l *Lexer) readNumber() string {
 	for isDigit(l.ch) {
 		l.readChar()
 	}
+	return l.input[start:l.position]
+}
+
+func (l *Lexer) readString() string {
+	start := l.position + 1 // " 다음부터
+	for {
+		l.readChar()
+		if l.ch == '\\' && l.peekChar() == '"' {
+			l.readChar()
+			continue
+		}
+		if l.ch == '"' || l.ch == eof {
+			break
+		}
+	}
+
 	return l.input[start:l.position]
 }
 

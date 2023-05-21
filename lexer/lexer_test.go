@@ -39,6 +39,7 @@ let add = fn(x, y) {
   x + y;
 };
 let result = add(five, ten);
+[1, 2];
 `,
 			expected: []token.Token{
 				{Type: token.LET, Literal: "let"},
@@ -76,6 +77,12 @@ let result = add(five, ten);
 				{Type: token.COMMA, Literal: ","},
 				{Type: token.IDENTIFIER, Literal: "ten"},
 				{Type: token.RPAREN, Literal: ")"},
+				{Type: token.SEMICOLON, Literal: ";"},
+				{Type: token.LBRACKET, Literal: "["},
+				{Type: token.INTEGER, Literal: "1"},
+				{Type: token.COMMA, Literal: ","},
+				{Type: token.INTEGER, Literal: "2"},
+				{Type: token.RBRACKET, Literal: "]"},
 				{Type: token.SEMICOLON, Literal: ";"},
 				{Type: token.EOF, Literal: ""},
 			},
@@ -143,6 +150,33 @@ let result = add(five, ten);
 				{Type: token.NEQ, Literal: "!="},
 				{Type: token.INTEGER, Literal: "9"},
 				{Type: token.SEMICOLON, Literal: ";"},
+			},
+		},
+		{
+			name: "string",
+			input: `"foobar"
+"hello world"
+"hello\nworld"
+"\"escaped\""
+`,
+			expected: []token.Token{
+				{Type: token.STRING, Literal: "foobar"},
+				{Type: token.STRING, Literal: "hello world"},
+				{Type: token.STRING, Literal: "hello\\nworld"},
+				{Type: token.STRING, Literal: `\"escaped\"`},
+				{Type: token.EOF, Literal: ""},
+			},
+		},
+		{
+			name:  "hash",
+			input: `{"foo": "bar"}`,
+			expected: []token.Token{
+				{Type: token.LBRACE, Literal: "{"},
+				{Type: token.STRING, Literal: "foo"},
+				{Type: token.COLON, Literal: ":"},
+				{Type: token.STRING, Literal: "bar"},
+				{Type: token.RBRACE, Literal: "}"},
+				{Type: token.EOF, Literal: ""},
 			},
 		},
 	}

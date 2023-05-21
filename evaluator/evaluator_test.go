@@ -3,6 +3,7 @@ package evaluator
 import (
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -74,6 +75,143 @@ func TestEvalBoolean(t *testing.T) {
 		t.Run(tc.input, func(t *testing.T) {
 			evaluated := evalFromString(t, tc.input)
 			assertBoolean(t, evaluated, tc.expected)
+		})
+	}
+}
+
+func TestEvalString(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{input: `"hello world!"`, expected: "hello world!"},
+		// TODO: \n 제대로 지원하기
+		{input: `"hello\nworld!"`, expected: "hello\\nworld!"},
+		{input: `"hello" + " " + "world!"`, expected: "hello world!"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertString(t, evaluated, tc.expected)
+		})
+	}
+}
+
+func TestEvalArray(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected []int
+	}{
+		{input: "[]", expected: []int{}},
+		{input: "[1]", expected: []int{1}},
+		{input: "[1, 2 + 3]", expected: []int{1, 5}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+			assertArray(t, evaluated, tc.expected)
+		})
+	}
+}
+
+func TestEvalArrayIndex(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: "[1, 2][0]", expected: 1},
+		{input: "[1, 2][1]", expected: 2},
+		{input: "[1, 2][-0]", expected: 1},
+		{input: "[1, 2, 3, 4][-1]", expected: 4},
+		{input: "[1, 2, 3, 4][-2]", expected: 3},
+		{input: "let i = 0; [1][i]", expected: 1},
+		{input: "[1, 2][0+1]", expected: 2},
+		{input: "let a = [1]; a[0];", expected: 1},
+		{input: "let a = [1, 2]; a[0] + a[1];", expected: 3},
+		{input: "[1, 2][2]", expected: errors.New("list index out of range")},
+		{input: "[1, 2][-3]", expected: errors.New("list index out of range")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+
+			switch expected := tc.expected.(type) {
+			case int:
+				assertInteger(t, evaluated, int64(expected))
+			case error:
+				assertError(t, evaluated, expected.Error())
+			}
+		})
+	}
+}
+
+func TestEvalHash(t *testing.T) {
+	t.Parallel()
+
+	input := `let two = "two";
+{
+  "one": 10 - 9,
+  two: 1 + 1,
+  "thr"+"ee": 6/2,
+  4: 4,
+  true: 5,
+  false: 6,
+}`
+	evaluated := evalFromString(t, input)
+
+	hash, ok := evaluated.(*object.Hash)
+	require.Truef(t, ok, "expected: *object.Hash, got: %T", evaluated)
+
+	expected := map[object.HashKey]int64{
+		(&object.String{Value: "one"}).HashKey():   1,
+		(&object.String{Value: "two"}).HashKey():   2,
+		(&object.String{Value: "three"}).HashKey(): 3,
+		(&object.Integer{Value: 4}).HashKey():      4,
+		True.HashKey():                             5,
+		False.HashKey():                            6,
+	}
+	require.Len(t, hash.Pairs, len(expected))
+	for k, v := range expected {
+		pair, ok := hash.Pairs[k]
+		require.Truef(t, ok, "%s does not exist in %v", k, hash.Pairs)
+		assertInteger(t, pair.Value, v)
+	}
+}
+
+func TestEvalHashIndex(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: `{"a": 5}["a"]`, expected: 5},
+		{input: `{"a": 5}["b"]`, expected: nil},
+		{input: `let k = "a"; {"a": 5}[k]`, expected: 5},
+		{input: `{}["b"]`, expected: nil},
+		{input: `{5: 5}[5]`, expected: 5},
+		{input: `{true: 5}[true]`, expected: 5},
+		{input: `{2: 5}[[1, 2]]`, expected: errors.New("unhashable type: 'array'")},
+		{input: `{fn(x) { x }: 5}[2]`, expected: errors.New("unhashable type: 'function'")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+
+			switch expected := tc.expected.(type) {
+			case int:
+				assertInteger(t, evaluated, int64(expected))
+			case nil:
+				assertNull(t, evaluated)
+			case error:
+				assertError(t, evaluated, expected.Error())
+			}
 		})
 	}
 }
@@ -165,6 +303,10 @@ func TestError(t *testing.T) {
 		{
 			input:    "foobar",
 			expected: "undefined name: 'foobar'",
+		},
+		{
+			input:    `"hello" - "world"`,
+			expected: "unsupported operator: 'string' - 'string'",
 		},
 	}
 	for _, tc := range cases {
@@ -295,6 +437,36 @@ adder(2)(5)
 	}
 }
 
+func TestEvalBuiltinFunctions(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		input    string
+		expected any
+	}{
+		{input: `len("")`, expected: 0},
+		{input: `len("four")`, expected: 4},
+		{input: `len(1)`, expected: errors.New("unsupported argument type of len(): 'int'")},
+		{input: `len("one", "two")`, expected: errors.New("len() takes exactly one argument: 2 given")},
+		{input: `len()`, expected: errors.New("len() takes exactly one argument: 0 given")},
+		{input: `len([])`, expected: 0},
+		{input: `len([1, 2])`, expected: 2},
+		{input: `len([1, 2], [3, 4])`, expected: errors.New("len() takes exactly one argument: 2 given")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			evaluated := evalFromString(t, tc.input)
+
+			switch expected := tc.expected.(type) {
+			case int:
+				assertInteger(t, evaluated, int64(expected))
+			case error:
+				assertError(t, evaluated, expected.Error())
+			}
+		})
+	}
+}
+
 func evalFromString(t *testing.T, input string) object.Object {
 	t.Helper()
 
@@ -323,6 +495,25 @@ func assertBoolean(t *testing.T, obj object.Object, expected bool) {
 	b, ok := obj.(*object.Boolean)
 	require.Truef(t, ok, "expected: *object.Boolean, got: %T", obj)
 	require.Equal(t, expected, b.Value)
+}
+
+func assertString(t *testing.T, obj object.Object, expected string) {
+	t.Helper()
+
+	s, ok := obj.(*object.String)
+	require.Truef(t, ok, "expected: *object.String, got: %T", obj)
+	require.Equal(t, expected, s.Value)
+}
+
+func assertArray(t *testing.T, obj object.Object, expected []int) {
+	t.Helper()
+
+	array, ok := obj.(*object.Array)
+	require.Truef(t, ok, "expected: *object.Array, got: %T", obj)
+	require.Len(t, array.Elements, len(expected))
+	for i, elem := range expected {
+		assertInteger(t, array.Elements[i], int64(elem))
+	}
 }
 
 func assertNull(t *testing.T, obj object.Object) {

@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"go-interpreter/token"
@@ -130,6 +131,55 @@ func (l *IntegerLiteral) TokenLiteral() string { return l.Token.Literal }
 
 func (l *IntegerLiteral) String() string { return l.Token.Literal }
 
+type StringLiteral struct {
+	Token token.Token // token.STRING 토큰
+	Value string
+}
+
+func (l *StringLiteral) expressionNode() {}
+
+func (l *StringLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *StringLiteral) String() string { return l.Token.Literal }
+
+// [<comma separated expressions>]
+type ArrayLiteral struct {
+	Token    token.Token // token.LBRACKET 토큰
+	Elements []Expression
+}
+
+func (l *ArrayLiteral) expressionNode() {}
+
+func (l *ArrayLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *ArrayLiteral) String() string {
+	elems := make([]string, len(l.Elements))
+	for i, e := range l.Elements {
+		elems[i] = e.String()
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
+}
+
+// {<expression>: <expression>}
+type HashLiteral struct {
+	Token token.Token // token.LBRACE 토큰
+	Pairs map[Expression]Expression
+}
+
+func (l *HashLiteral) expressionNode() {}
+
+func (l *HashLiteral) TokenLiteral() string { return l.Token.Literal }
+
+func (l *HashLiteral) String() string {
+	pairs := make([]string, 0, len(l.Pairs))
+	for k, v := range l.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", k, v))
+	}
+	sort.Strings(pairs)
+	return fmt.Sprintf("{%s}", strings.Join(pairs, ", "))
+}
+
 // <prefix operator><expression>
 type PrefixExpression struct {
 	Token    token.Token // 전위 연산자 토큰 (e.g. -, !)
@@ -239,4 +289,19 @@ func (exp *CallExpression) String() string {
 		exp.Function,
 		strings.Join(args, ", "),
 	)
+}
+
+// <expression>[<expression>]
+type IndexExpression struct {
+	Token token.Token // token.LBRACKET 토큰
+	Left  Expression
+	Index Expression
+}
+
+func (exp *IndexExpression) expressionNode() {}
+
+func (exp *IndexExpression) TokenLiteral() string { return exp.Token.Literal }
+
+func (exp *IndexExpression) String() string {
+	return fmt.Sprintf("(%s[%s])", exp.Left, exp.Index)
 }

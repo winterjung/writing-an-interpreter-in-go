@@ -14,6 +14,7 @@ const (
 	// 식별자 + 리터럴
 	IDENTIFIER = "IDENTIFIER" // 변수 이름
 	INTEGER    = "INTEGER"
+	STRING     = "STRING"
 
 	// 연산자
 	ASSIGN   = "="
@@ -31,11 +32,14 @@ const (
 	// 구분자
 	COMMA     = ","
 	SEMICOLON = ";"
+	COLON     = ":"
 
-	LPAREN = "("
-	RPAREN = ")"
-	LBRACE = "{"
-	RBRACE = "}"
+	LPAREN   = "("
+	RPAREN   = ")"
+	LBRACE   = "{"
+	RBRACE   = "}"
+	LBRACKET = "["
+	RBRACKET = "]"
 
 	// 예약어
 	FUNCTION = "FUNCTION"
