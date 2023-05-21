@@ -226,8 +226,11 @@ func evalIndex(left, index object.Object) object.Object {
 func evalArrayIndex(left, index object.Object) object.Object {
 	array := left.(*object.Array)
 	idx := index.(*object.Integer).Value
-	max := len(array.Elements) - 1
-	if idx < 0 || int(idx) > max {
+	max := int64(len(array.Elements) - 1)
+	if idx < 0 {
+		idx = max + idx + 1
+	}
+	if idx < 0 || idx > max {
 		return makeError("list index out of range")
 	}
 	return array.Elements[idx]

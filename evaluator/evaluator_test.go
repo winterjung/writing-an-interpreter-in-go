@@ -127,12 +127,15 @@ func TestEvalArrayIndex(t *testing.T) {
 	}{
 		{input: "[1, 2][0]", expected: 1},
 		{input: "[1, 2][1]", expected: 2},
+		{input: "[1, 2][-0]", expected: 1},
+		{input: "[1, 2, 3, 4][-1]", expected: 4},
+		{input: "[1, 2, 3, 4][-2]", expected: 3},
 		{input: "let i = 0; [1][i]", expected: 1},
 		{input: "[1, 2][0+1]", expected: 2},
 		{input: "let a = [1]; a[0];", expected: 1},
 		{input: "let a = [1, 2]; a[0] + a[1];", expected: 3},
 		{input: "[1, 2][2]", expected: errors.New("list index out of range")},
-		{input: "[1, 2][-1]", expected: errors.New("list index out of range")},
+		{input: "[1, 2][-3]", expected: errors.New("list index out of range")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
@@ -381,6 +384,9 @@ func TestEvalBuiltinFunctions(t *testing.T) {
 		{input: `len(1)`, expected: errors.New("unsupported argument type of len(): 'int'")},
 		{input: `len("one", "two")`, expected: errors.New("len() takes exactly one argument: 2 given")},
 		{input: `len()`, expected: errors.New("len() takes exactly one argument: 0 given")},
+		{input: `len([])`, expected: 0},
+		{input: `len([1, 2])`, expected: 2},
+		{input: `len([1, 2], [3, 4])`, expected: errors.New("len() takes exactly one argument: 2 given")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {
